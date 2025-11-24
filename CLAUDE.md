@@ -311,3 +311,16 @@ interface ReferenceGalleryProps {
 - No network requests for core functionality
 - No photos uploaded to cloud
 - Battery optimization crucial for extended photo sessions
+
+---
+
+## Development Journal
+
+### 2024-11-24 15:00 - Photo Library Organization & Quality Control
+- Added 37 new reference photos, manually categorized and corrected AI miscategorizations
+- Iteratively refined photo organization with multiple user corrections for accurate scenario/location classification
+- Removed duplicates, renumbered all 135 images sequentially across 12 categories
+- Final distribution: Portrait-Full (59), Portrait-Half (41), Close-Up (35) - excellent balance
+- Created automated renumbering script for future photo management
+- Updated /journal command to prompt for wrap-up tasks before writing entries
+- Decisions: Manual review essential for photo categorization accuracy; user knows content best
