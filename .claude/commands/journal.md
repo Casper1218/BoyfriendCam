@@ -26,12 +26,16 @@ Please review our conversation from this session and create a concise journal en
 ```
 
 **Process:**
-1. Read existing CLAUDE.md file completely
-2. Find Development Journal section (create at end if missing)
-3. Check for entries from today with similar timestamps (within 2 hours)
-4. Compare content: If very similar entry exists, ASK me for confirmation
-5. If no duplicate OR user confirms: Append new entry to journal
-6. Commit with message: "Update development journal - [date] [time]"
+1. **FIRST**: Ask user: "Any final wrap-up tasks before I write the journal entry?"
+   - Wait for user response
+   - If user has tasks: Complete them first, then proceed with journal
+   - If user says no/ready: Continue to step 2
+2. Read existing CLAUDE.md file completely
+3. Find Development Journal section (create at end if missing)
+4. Check for entries from today with similar timestamps (within 2 hours)
+5. Compare content: If very similar entry exists, ASK me for confirmation
+6. If no duplicate OR user confirms: Append new entry to journal
+7. Commit with message: "Update development journal - [date] [time]"
 
 **Example Entry:**
 ```markdown
