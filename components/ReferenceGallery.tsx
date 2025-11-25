@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { getReferencePhotos } from '@/utils/referencePhotos';
 
 // TypeScript Interfaces
 export interface ReferenceGalleryProps {
@@ -36,10 +37,24 @@ export default function ReferenceGallery({
     isLoading: true,
   });
 
-  // Placeholder for photo loading (Phase 2)
+  // Load reference photos based on scenario and location (Phase 2)
   useEffect(() => {
-    // TODO: Load references based on scenario and location
-    setState(prev => ({ ...prev, isLoading: false }));
+    try {
+      const photos = getReferencePhotos(scenario, location);
+      setState(prev => ({
+        ...prev,
+        references: photos,
+        currentIndex: 0,
+        isLoading: false,
+      }));
+    } catch (error) {
+      console.error('Failed to load reference photos:', error);
+      setState(prev => ({
+        ...prev,
+        references: [],
+        isLoading: false,
+      }));
+    }
   }, [scenario, location]);
 
   // Notify parent when reference changes
@@ -49,24 +64,48 @@ export default function ReferenceGallery({
     }
   }, [state.currentIndex, onReferenceChange, state.references.length]);
 
-  // Don't render if no references loaded (will be implemented in Phase 2)
-  if (state.isLoading || state.references.length === 0) {
+  // Show loading state
+  if (state.isLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.placeholder}>
+          <Text style={styles.placeholderText}>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Handle empty category gracefully
+  if (state.references.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.placeholder}>
           <Text style={styles.placeholderText}>
-            Phase 1: Component Structure
+            No reference{'\n'}photos
           </Text>
         </View>
       </View>
     );
   }
 
+  // Get current reference photo
+  const currentPhoto = state.references[state.currentIndex];
+
   return (
     <View style={styles.container}>
-      {/* Thumbnail view (Phase 3) */}
+      {/* Thumbnail view - Display actual photo (Phase 2) */}
       <TouchableOpacity style={styles.thumbnail}>
-        <Text style={styles.thumbnailText}>Thumbnail</Text>
+        <Image
+          source={currentPhoto}
+          style={styles.thumbnailImage}
+          resizeMode="cover"
+        />
+        {/* Photo counter */}
+        <View style={styles.counter}>
+          <Text style={styles.counterText}>
+            {state.currentIndex + 1}/{state.references.length}
+          </Text>
+        </View>
       </TouchableOpacity>
 
       {/* Expanded view overlay (Phase 5) */}
@@ -115,17 +154,31 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
     borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 5,
   },
-  thumbnailText: {
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  counter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  counterText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   expandedOverlay: {
     position: 'absolute',
