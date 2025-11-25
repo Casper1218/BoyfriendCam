@@ -226,13 +226,13 @@ export default function ReferenceGallery({
           console.log('[RELEASE] Tap threshold:', TAP_THRESHOLD, 'Swipe threshold:', SWIPE_THRESHOLD);
         }
 
-        // Detect tap (minimal movement)
+        // Detect tap (minimal movement) - now ignored in overlay, only swipes matter
         if (totalMovement < TAP_THRESHOLD) {
           if (showDebugInfo) {
-            console.log('[RELEASE] TAP detected! Toggling expanded view');
-            setDebugText(`[RELEASE] Tap! Movement: ${Math.round(totalMovement)}px`);
+            console.log('[RELEASE] TAP detected - ignored (use background or X button to close)');
+            setDebugText(`[RELEASE] Tap ignored: ${Math.round(totalMovement)}px`);
           }
-          toggleExpanded();
+          // Do nothing - background and X button handle dismissal
           return;
         }
 
@@ -310,29 +310,26 @@ export default function ReferenceGallery({
           </View>
         )}
 
-        {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
-        <Animated.View
-          style={[styles.thumbnail, { opacity: fadeAnim }]}
-          {...panResponder.panHandlers}
-        >
-          <Image
-            source={currentPhoto}
-            style={styles.thumbnailImage}
-            resizeMode="cover"
-          />
-          {/* Photo counter */}
-          <View style={styles.counter}>
-            <Text style={styles.counterText}>
-              {state.currentIndex + 1}/{state.references.length}
-            </Text>
-          </View>
-          {/* Swipe indicator */}
-          {state.references.length > 1 && (
-            <View style={styles.swipeIndicator}>
-              <Text style={styles.swipeText}>← swipe →</Text>
+        {/* Thumbnail view - Tap-only to open overlay (Phase 4 updated) */}
+        <TouchableWithoutFeedback onPress={toggleExpanded}>
+          <Animated.View style={[styles.thumbnail, { opacity: fadeAnim }]}>
+            <Image
+              source={currentPhoto}
+              style={styles.thumbnailImage}
+              resizeMode="cover"
+            />
+            {/* Photo counter */}
+            <View style={styles.counter}>
+              <Text style={styles.counterText}>
+                {state.currentIndex + 1}/{state.references.length}
+              </Text>
             </View>
-          )}
-        </Animated.View>
+            {/* Tap indicator */}
+            <View style={styles.tapIndicator}>
+              <Text style={styles.tapText}>tap to view</Text>
+            </View>
+          </Animated.View>
+        </TouchableWithoutFeedback>
 
         {/* DEBUG: Gesture logging - only shown if debug enabled */}
         {showDebugInfo && (
@@ -345,35 +342,45 @@ export default function ReferenceGallery({
       {/* Expanded view overlay (Phase 5) - Rendered outside container for full-screen coverage */}
       {/* Performance: Overlay only renders when expanded, no performance impact when collapsed */}
       {state.isExpanded && (
-        <TouchableWithoutFeedback onPress={toggleExpanded}>
-          <View style={styles.expandedOverlay}>
-            {/* Dark background overlay */}
+        <View style={styles.expandedOverlay}>
+          {/* Dark background overlay - tap to dismiss */}
+          <TouchableWithoutFeedback onPress={toggleExpanded}>
             <View style={styles.expandedBackground} />
+          </TouchableWithoutFeedback>
 
-            {/* Centered image container */}
-            <View style={styles.expandedImageContainer}>
-              <Image
-                source={currentPhoto}
-                style={styles.expandedImage}
-                resizeMode="contain"
-              />
+          {/* Centered image container with swipe gestures */}
+          <Animated.View
+            style={[styles.expandedImageContainer, { opacity: fadeAnim }]}
+            {...panResponder.panHandlers}
+          >
+            <Image
+              source={currentPhoto}
+              style={styles.expandedImage}
+              resizeMode="contain"
+            />
 
-              {/* Close button as backup */}
-              <TouchableWithoutFeedback onPress={toggleExpanded}>
-                <View style={styles.closeButton}>
-                  <Text style={styles.closeButtonText}>✕</Text>
-                </View>
-              </TouchableWithoutFeedback>
-
-              {/* Photo counter in expanded view */}
-              <View style={styles.expandedCounter}>
-                <Text style={styles.expandedCounterText}>
-                  {state.currentIndex + 1} / {state.references.length}
-                </Text>
+            {/* Close button as backup */}
+            <TouchableWithoutFeedback onPress={toggleExpanded}>
+              <View style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
               </View>
+            </TouchableWithoutFeedback>
+
+            {/* Swipe indicator - moved from thumbnail */}
+            {state.references.length > 1 && (
+              <View style={styles.expandedSwipeIndicator}>
+                <Text style={styles.expandedSwipeText}>← swipe →</Text>
+              </View>
+            )}
+
+            {/* Photo counter in expanded view */}
+            <View style={styles.expandedCounter}>
+              <Text style={styles.expandedCounterText}>
+                {state.currentIndex + 1} / {state.references.length}
+              </Text>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
+          </Animated.View>
+        </View>
       )}
     </>
   );
@@ -383,7 +390,7 @@ export default function ReferenceGallery({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 100, // Above camera controls
+    bottom: 180, // Moved up to avoid overlapping camera flip button
     right: 16, // Right margin
     zIndex: 10,
     alignItems: 'center',
@@ -481,6 +488,22 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 8,
   },
+  tapIndicator: {
+    position: 'absolute',
+    top: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  tapText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
   debugBox: {
     marginTop: 12,
     backgroundColor: '#1a1a1a',
@@ -516,8 +539,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.85)',
   },
   expandedImageContainer: {
-    width: Dimensions.get('window').width * 0.5, // 50% of screen width
-    maxHeight: Dimensions.get('window').height * 0.7, // Max 70% of screen height
+    width: Dimensions.get('window').width * 0.85, // 85% of screen width for better aspect ratio
+    maxHeight: Dimensions.get('window').height * 0.75, // Max 75% of screen height
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
@@ -570,5 +593,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  expandedSwipeIndicator: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  expandedSwipeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
 });
