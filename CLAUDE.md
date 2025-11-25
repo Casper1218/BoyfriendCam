@@ -397,3 +397,19 @@ interface ReferenceGalleryProps {
 - Committed Phases 1-4 to feature branch
 - Status: Phases 1-4 complete, Phase 5 (Tap-to-Expand) next
 - Decisions: Static asset mapping required for Metro bundler; native animations for performance; horizontal-only swipe detection to preserve camera controls
+
+### 2024-11-25 21:00 - Critical Bug Fix & Development Tools System
+- **Critical Bug Fix**: Resolved React closure bug in ReferenceGallery - PanResponder created with useRef captured stale empty state, preventing photo navigation
+  - Root cause: navigateReference function had closure over initial empty references array even after photos loaded
+  - Solution: Introduced referencesRef and currentIndexRef to provide current values to PanResponder handlers
+  - Verified fix on both iOS simulator and physical device - swipe gestures now work correctly
+- **Development Control Panel**: Created centralized dev settings system to organize debug features
+  - New architecture: contexts/DevContext.tsx + components/DevControlPanel.tsx
+  - Small "DEV" button on first screen opens modal with feature toggles
+  - Four toggles: Test Swipe Component, Test Button (Camera), Debug Info (Gallery), Grid Overlay
+  - Benefits: Clean production UI, easy debugging access, organized test components vs scattered debug code
+- **Gallery Refinements**: Increased size to 100x150px (from 80x120px) for better swipe usability, repositioned to bottom-right corner
+- **Documentation**: Updated CLAUDE.md with dev panel architecture and usage patterns, marked Phase 4 complete in FEATURE_1.md
+- **Git Workflow**: Created 3 logical commits (bug fix, dev tools, docs) and pushed to feature/reference-gallery branch
+- **Status**: Phase 4 fully complete and verified, Phase 5 (Tap-to-Expand) ready to start
+- **Key Learning**: PanResponder + useRef creates persistent closures - always use refs for values that handlers need to access after component updates
