@@ -60,9 +60,11 @@ Provide visual reference examples without switching apps. Serves as baseline sol
 - [x] Import ReferenceGallery in `app/camera.tsx`
 - [x] Pass scenario and location from route params
 - [x] Position overlay correctly on camera preview
-- [ ] Ensure camera maintains 30fps
-- [ ] Test performance on both platforms
-- [ ] Test: No lag in camera preview
+- [x] Add performance optimization comments to code
+- [ ] Test: Ensure camera maintains 30fps (requires device testing)
+- [ ] Test: Performance on iOS device
+- [ ] Test: Performance on Android device
+- [ ] Test: No lag in camera preview during all interactions
 
 ### Phase 7: Edge Case Handling
 - [ ] Handle missing category directories
@@ -202,6 +204,75 @@ const loadReferences = (scenario: string, location: string) => {
 - **UI Elements**: Photo counter shown in expanded view, close button for backup dismissal
 - **Z-Index**: Expanded overlay set to zIndex: 1000 to ensure it appears above all camera elements
 - **Status**: ✅ Phase 5 complete - tap-to-expand implemented with proper gesture detection and full-screen overlay
+
+### Phase 6 (2024-11-25)
+- **Integration**: Camera integration already complete from Phase 1 - ReferenceGallery positioned outside CameraView
+- **Performance Comments**: Added inline documentation highlighting performance optimizations:
+  * Native driver animations (60fps without blocking JS thread)
+  * Fast transitions (200ms total) to minimize camera impact
+  * Conditional rendering - expanded overlay only renders when needed
+- **Testing Required**: Device testing needed to verify 30fps camera preview maintained
+- **Status**: ⏳ Code complete, awaiting device performance testing
+
+### Phase 6 Performance Testing Guide
+
+**How to Test Camera Performance:**
+
+1. **Visual FPS Test (Basic)**
+   - Open camera screen with ReferenceGallery visible
+   - Move the phone around smoothly
+   - Camera preview should be fluid with no visible lag or stuttering
+   - Test both with thumbnail collapsed and expanded
+
+2. **Enable React Native Performance Monitor:**
+   ```bash
+   # In iOS Simulator: Cmd+D → "Perf Monitor"
+   # On iOS Device: Shake device → "Perf Monitor"
+   # In Android: Cmd+M → "Perf Monitor"
+   # On Android Device: Shake device → "Perf Monitor"
+   ```
+   - **JS FPS**: Should stay at 60 (measures React Native UI thread)
+   - **UI FPS**: Should stay near 60 (measures native UI rendering)
+   - Camera preview runs on native side, so UI FPS most important
+
+3. **Interaction Testing:**
+   - **Swipe gestures**: Swipe between reference photos - should be smooth
+   - **Tap-to-expand**: Tap thumbnail - expansion should be instant
+   - **Dismiss overlay**: Tap to close - should be responsive
+   - **During all above**: Monitor that camera preview doesn't stutter
+
+4. **Stress Testing:**
+   - Rapidly swipe between photos multiple times
+   - Repeatedly tap to expand/collapse
+   - Check memory usage doesn't continuously grow
+   - Verify no memory leaks after 20+ interactions
+
+5. **Platform-Specific Tests:**
+   - **iOS**: Test on physical device (simulator has different performance)
+   - **Android**: Test on mid-range device (e.g., Pixel 4a, Samsung A series)
+   - **Both**: Test in different lighting conditions (camera processing varies)
+
+**Performance Optimizations Already Implemented:**
+- ✅ Native driver animations (useNativeDriver: true)
+- ✅ Fast fade transitions (100ms each, 200ms total)
+- ✅ Conditional rendering of expanded overlay
+- ✅ Static image loading (no runtime network requests)
+- ✅ Minimal re-renders (refs used for gesture handlers)
+- ✅ StyleSheet.create() for optimized styles
+
+**Expected Results:**
+- Camera preview: Solid 30 FPS minimum (visible smoothness)
+- JS thread: 60 FPS during interactions
+- UI thread: 55-60 FPS (slight drops acceptable during transitions)
+- No frame drops during normal swipe/tap interactions
+- Brief dips (<1 second) acceptable during expand/collapse
+
+**If Performance Issues Found:**
+- Check if issue is iOS-only or Android-only
+- Verify it's the gallery causing it (disable via dev panel)
+- Consider reducing transition durations
+- May need to debounce rapid interactions
+- Profile using React DevTools if needed
 
 ---
 

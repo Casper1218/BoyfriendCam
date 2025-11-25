@@ -43,6 +43,7 @@ export default function ReferenceGallery({
   const [debugText, setDebugText] = useState('Waiting for touch...');
 
   // Animation for fade effect (Phase 4)
+  // Performance: Uses native driver for 60fps animations without blocking JS thread
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // CRITICAL FIX: Use ref to store references so panResponder can access current value
@@ -106,6 +107,7 @@ export default function ReferenceGallery({
   }, [state.currentIndex, onReferenceChange, state.references.length]);
 
   // Navigate to next/previous reference with fade animation (Phase 4)
+  // Performance: Fast transitions (200ms total) minimize impact on camera preview
   const navigateReference = (direction: 'next' | 'prev') => {
     // CRITICAL FIX: Use refs instead of state - panResponder has closure over stale state!
     if (showDebugInfo) {
@@ -341,6 +343,7 @@ export default function ReferenceGallery({
       </View>
 
       {/* Expanded view overlay (Phase 5) - Rendered outside container for full-screen coverage */}
+      {/* Performance: Overlay only renders when expanded, no performance impact when collapsed */}
       {state.isExpanded && (
         <TouchableWithoutFeedback onPress={toggleExpanded}>
           <View style={styles.expandedOverlay}>
