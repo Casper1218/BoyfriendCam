@@ -75,9 +75,16 @@ export default function ReferenceGallery({
 
   // Navigate to next/previous reference with fade animation (Phase 4)
   const navigateReference = (direction: 'next' | 'prev') => {
-    if (state.references.length <= 1) return;
+    console.log('[NAV] Called with direction:', direction);
+    console.log('[NAV] Current index:', state.currentIndex);
+    console.log('[NAV] Total references:', state.references.length);
 
-    setDebugText(`Swiped ${direction}!`);
+    if (state.references.length <= 1) {
+      setDebugText(`[NAV] Only ${state.references.length} photo(s), can't swipe`);
+      return;
+    }
+
+    setDebugText(`[NAV] Swiping ${direction}...`);
 
     // Fade out
     Animated.timing(fadeAnim, {
@@ -85,11 +92,14 @@ export default function ReferenceGallery({
       duration: 100,
       useNativeDriver: true,
     }).start(() => {
+      console.log('[NAV] Fade out complete, updating index');
       // Update index with wrapping
       setState(prev => {
         const newIndex = direction === 'next'
           ? (prev.currentIndex + 1) % prev.references.length
           : (prev.currentIndex - 1 + prev.references.length) % prev.references.length;
+        console.log('[NAV] Changing from', prev.currentIndex, 'to', newIndex);
+        setDebugText(`[NAV] Changed to ${newIndex + 1}/${prev.references.length}`);
         return { ...prev, currentIndex: newIndex };
       });
 
@@ -98,7 +108,9 @@ export default function ReferenceGallery({
         toValue: 1,
         duration: 100,
         useNativeDriver: true,
-      }).start();
+      }).start(() => {
+        console.log('[NAV] Fade in complete');
+      });
     });
   };
 
@@ -138,20 +150,27 @@ export default function ReferenceGallery({
       },
 
       onPanResponderRelease: (_, gestureState) => {
-        setDebugText(`[RELEASE] Lifted at dx=${Math.round(gestureState.dx)}px`);
-
         const dx = gestureState.dx;
         const dy = gestureState.dy;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        console.log('[RELEASE] dx:', dx, 'dy:', dy, 'threshold:', SWIPE_THRESHOLD);
+        console.log('[RELEASE] Horizontal?', absDx > absDy, 'Long enough?', absDx > SWIPE_THRESHOLD);
 
         // Only process horizontal swipes that exceed threshold
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+        if (absDx > absDy && absDx > SWIPE_THRESHOLD) {
+          console.log('[RELEASE] VALID SWIPE! Direction:', dx > 0 ? 'RIGHT (prev)' : 'LEFT (next)');
+          setDebugText(`[RELEASE] Valid ${absDx}px swipe! Calling navigate...`);
+
           if (dx > 0) {
             navigateReference('prev');
           } else {
             navigateReference('next');
           }
         } else {
-          setDebugText(`[RELEASE] Too short: ${Math.round(Math.abs(dx))}px (need ${SWIPE_THRESHOLD}px)`);
+          console.log('[RELEASE] REJECTED - Too short or not horizontal');
+          setDebugText(`[RELEASE] Too short: ${Math.round(absDx)}px (need ${SWIPE_THRESHOLD}px)`);
         }
       },
 
