@@ -185,6 +185,7 @@ const loadReferences = (scenario: string, location: string) => {
 - **Navigation**: Circular wrapping - swiping past last photo returns to first
 - **UI Enhancement**: "← swipe →" indicator shown when multiple photos available
 - **Performance**: Uses native driver for smooth 60fps animations without impacting camera
+- **Bug Fix**: Added capture handlers (onStartShouldSetPanResponderCapture, onMoveShouldSetPanResponderCapture) for proper touch event handling - swipe gestures now work on both simulator and physical device
 
 ---
 
