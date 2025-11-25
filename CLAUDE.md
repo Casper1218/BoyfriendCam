@@ -78,27 +78,31 @@ When adding or modifying tips, ensure both scenario and location keys exist in t
 ### Project Structure
 ```
 app/                    # File-based routing (expo-router)
-  _layout.tsx          # Root layout with Stack navigator
+  _layout.tsx          # Root layout with Stack navigator + DevProvider
   index.tsx            # Scenario selection screen
   location.tsx         # Location selection screen
   camera.tsx           # Camera interface with tips
 components/
   ui/                  # Reusable UI components
-  GridOverlay.tsx      # [TO BUILD] Rule of thirds grid
-  ReferenceGallery.tsx # [TO BUILD] Swipeable reference photos
+  ReferenceGallery.tsx # ✅ Swipeable reference photos (Phase 4 complete)
+  TestSwipe.tsx        # Test component for gesture debugging
+  DevControlPanel.tsx  # Development settings modal
   LiveInstructions.tsx # [TO BUILD] Real-time guidance overlay
   CompositionTips.tsx  # Dynamic tips display
+contexts/
+  DevContext.tsx       # Global dev settings context
 constants/             # App-wide constants
   scenarios.ts         # Scenario definitions
   locations.ts         # Location definitions
 hooks/                 # Custom React hooks
 utils/                 # Utility functions
+  referencePhotos.ts   # ✅ Static asset mapping for Metro bundler
   compositionAnalysis.ts # [TO BUILD] Rule-based composition rules
   instructionEngine.ts   # [TO BUILD] Generate instructions
   referenceComparison.ts # [TO BUILD] Compare live feed to reference
 assets/                # Images, fonts, icons
   images/
-    photos/            # Reference photos organized by category
+    photos/            # Reference photos organized by category (135 total)
       portrait-full-beach/
       portrait-full-outdoors/
       portrait-full-restaurant/
@@ -144,6 +148,54 @@ All screens use StyleSheet.create() with inline styles. The app uses a dark them
 - Secondary background: `#1a1a1a`
 - Borders: `#333`
 - Text: `#fff` (white)
+
+### Development Control Panel
+
+**Purpose:** Toggle debug features and test components during development without cluttering production UI.
+
+**Access:** Small "DEV" button in bottom-left corner of first screen (index.tsx)
+
+**Architecture:**
+- `contexts/DevContext.tsx` - Global context providing dev settings state
+- `components/DevControlPanel.tsx` - Modal with checkboxes to toggle features
+- Settings persist during app session (in-memory, resets on app restart)
+
+**Available Toggles:**
+1. **Test Swipe Component** - Shows TestSwipe component on first screen for gesture debugging
+2. **Test Button (Camera)** - Shows interactive test button on camera screen
+3. **Debug Info (Gallery)** - Enables all console logs and debug UI in ReferenceGallery
+4. **Grid Overlay** - Shows rule of thirds grid on camera (defaults ON)
+
+**Usage Pattern:**
+```typescript
+// In any component wrapped by DevProvider:
+import { useDevSettings } from '@/contexts/DevContext';
+
+function MyComponent() {
+  const { settings } = useDevSettings();
+
+  // Conditional rendering based on dev settings
+  if (settings.showDebugInfo) {
+    console.log('[DEBUG] Some diagnostic info');
+  }
+
+  return (
+    <>
+      {settings.showTestButton && <TestButton />}
+    </>
+  );
+}
+```
+
+**Integration:**
+- Root layout (`app/_layout.tsx`) wraps app with `<DevProvider>`
+- Components check `settings.showX` to conditionally render debug features
+- ReferenceGallery accepts `showDebugInfo` prop to control all logging
+
+**Design Philosophy:**
+- Keep production UI clean - hide all debug elements by default
+- Make debugging easy - one tap to enable extensive logging
+- Organize test components - centralized panel vs scattered debug code
 
 ## Feature Development Guidelines
 

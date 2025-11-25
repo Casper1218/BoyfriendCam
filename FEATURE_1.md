@@ -30,12 +30,12 @@ Provide visual reference examples without switching apps. Serves as baseline sol
 - [x] Test: Photos load correctly for all 12 categories
 
 ### Phase 3: Thumbnail Display
-- [x] Position thumbnail bottom-right (80x120px)
+- [x] Position thumbnail bottom-right (100x150px - increased for better usability)
 - [x] Add 16px margins from edges
 - [x] Style: 2px white border with shadow
 - [x] Display current reference image
 - [x] Add swipe indicator UI (photo counter)
-- [x] Test: Thumbnail visible and doesn't block subject (ready for device testing)
+- [x] Test: Thumbnail visible and doesn't block subject (verified on device)
 
 ### Phase 4: Swipe Gesture Implementation
 - [x] Set up PanResponder for touch handling
@@ -44,7 +44,8 @@ Provide visual reference examples without switching apps. Serves as baseline sol
 - [x] Add smooth fade animation (100ms fade out/in)
 - [x] Show image counter (e.g., "2/4")
 - [x] Prevent accidental vertical scrolling
-- [ ] Test: Smooth swiping between all references
+- [x] Fix closure bug - use refs for PanResponder to access current state
+- [x] Test: Smooth swiping between all references (verified on device)
 
 ### Phase 5: Tap-to-Expand Feature
 - [ ] Detect tap on thumbnail
@@ -178,14 +179,18 @@ const loadReferences = (scenario: string, location: string) => {
 - **Styling**: 80x120px with 2px white border, shadow, and 16px margins (via absolute positioning)
 - **Note**: Swipe gesture not yet implemented - counter shows 1/N for now
 
-### Phase 4 (2024-11-24)
+### Phase 4 (2024-11-25)
 - **Implementation**: PanResponder for touch gesture handling with 50px swipe threshold
 - **Swipe Logic**: Horizontal swipes change photos, vertical movements ignored to preserve camera controls
 - **Animation**: 100ms fade out/in transition between photos (200ms total)
 - **Navigation**: Circular wrapping - swiping past last photo returns to first
 - **UI Enhancement**: "← swipe →" indicator shown when multiple photos available
 - **Performance**: Uses native driver for smooth 60fps animations without impacting camera
-- **Bug Fix**: Added capture handlers (onStartShouldSetPanResponderCapture, onMoveShouldSetPanResponderCapture) for proper touch event handling - swipe gestures now work on both simulator and physical device
+- **Bug Fix #1**: Added capture handlers (onStartShouldSetPanResponderCapture, onMoveShouldSetPanResponderCapture) for proper touch event handling
+- **Bug Fix #2**: Fixed React closure bug - PanResponder created with useRef captured stale state. Solution: Use refs (referencesRef, currentIndexRef) instead of state in navigation logic
+- **CameraView Issue**: Moved ReferenceGallery outside CameraView component (was blocking gestures and causing warnings)
+- **Final Positioning**: Bottom-right corner, 100x150px (increased from 80x120px for better swipe usability)
+- **Status**: ✅ Swipe gestures working smoothly on both simulator and physical device
 
 ---
 
