@@ -48,21 +48,32 @@ export default function ReferenceGallery({
 
   // Load reference photos based on scenario and location (Phase 2)
   useEffect(() => {
+    console.log('[LOAD] useEffect triggered');
+    console.log('[LOAD] Scenario:', scenario, 'Location:', location);
+    console.log('[LOAD] Scenario type:', typeof scenario, 'Location type:', typeof location);
+
     try {
       const photos = getReferencePhotos(scenario, location);
+      console.log('[LOAD] getReferencePhotos returned:', photos);
+      console.log('[LOAD] Photos count:', photos.length);
+
       setState(prev => ({
         ...prev,
         references: photos,
         currentIndex: 0,
         isLoading: false,
       }));
+
+      setDebugText(`[LOAD] Loaded ${photos.length} photos for ${scenario}-${location}`);
+      console.log('[LOAD] State updated successfully');
     } catch (error) {
-      console.error('Failed to load reference photos:', error);
+      console.error('[LOAD] Failed to load reference photos:', error);
       setState(prev => ({
         ...prev,
         references: [],
         isLoading: false,
       }));
+      setDebugText(`[LOAD] ERROR: ${error}`);
     }
   }, [scenario, location]);
 
@@ -217,6 +228,13 @@ export default function ReferenceGallery({
       {/* DEBUG: Title */}
       <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>
 
+      {/* DEBUG: Props and State */}
+      <View style={styles.debugInfo}>
+        <Text style={styles.debugInfoText}>Props: {scenario} + {location}</Text>
+        <Text style={styles.debugInfoText}>State: {state.references.length} photos loaded</Text>
+        <Text style={styles.debugInfoText}>Current: {state.currentIndex + 1}/{state.references.length}</Text>
+      </View>
+
       {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
       <Animated.View
         style={[styles.thumbnail, { opacity: fadeAnim }]}
@@ -275,6 +293,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+  },
+  debugInfo: {
+    backgroundColor: 'rgba(255, 165, 0, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  debugInfoText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 2,
   },
   placeholder: {
     width: 80,
