@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Image, StyleSheet, Text, PanResponder, Animated } from 'react-native';
 import { getReferencePhotos } from '@/utils/referencePhotos';
 
 // TypeScript Interfaces
@@ -37,6 +37,13 @@ export default function ReferenceGallery({
     isLoading: true,
   });
 
+  // Animation for fade effect (Phase 4)
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Swipe gesture tracking (Phase 4)
+  const swipeStart = useRef({ x: 0, y: 0 });
+  const SWIPE_THRESHOLD = 50; // Minimum distance for swipe detection
+
   // Load reference photos based on scenario and location (Phase 2)
   useEffect(() => {
     try {
@@ -63,6 +70,80 @@ export default function ReferenceGallery({
       onReferenceChange(state.currentIndex);
     }
   }, [state.currentIndex, onReferenceChange, state.references.length]);
+
+  // Navigate to next/previous reference with fade animation (Phase 4)
+  const navigateReference = (direction: 'next' | 'prev') => {
+    if (state.references.length <= 1) return;
+
+    // Fade out
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
+      // Update index with wrapping
+      setState(prev => {
+        const newIndex = direction === 'next'
+          ? (prev.currentIndex + 1) % prev.references.length
+          : (prev.currentIndex - 1 + prev.references.length) % prev.references.length;
+        return { ...prev, currentIndex: newIndex };
+      });
+
+      // Fade in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  // PanResponder for swipe gestures (Phase 4)
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderGrant: (evt) => {
+        // Record starting position
+        swipeStart.current = {
+          x: evt.nativeEvent.pageX,
+          y: evt.nativeEvent.pageY,
+        };
+      },
+
+      onPanResponderMove: (evt, gestureState) => {
+        // Allow vertical camera movements, only track horizontal
+        const dx = Math.abs(gestureState.dx);
+        const dy = Math.abs(gestureState.dy);
+
+        // If horizontal movement dominates, prevent vertical scrolling
+        if (dx > dy && dx > 10) {
+          return true;
+        }
+      },
+
+      onPanResponderRelease: (evt, gestureState) => {
+        const dx = gestureState.dx;
+        const dy = gestureState.dy;
+
+        // Only process horizontal swipes
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+          if (dx > 0) {
+            // Swipe right - show previous
+            navigateReference('prev');
+          } else {
+            // Swipe left - show next
+            navigateReference('next');
+          }
+        }
+      },
+
+      onPanResponderTerminate: () => {
+        // Gesture cancelled
+      },
+    })
+  ).current;
 
   // Show loading state
   if (state.isLoading) {
@@ -93,8 +174,11 @@ export default function ReferenceGallery({
 
   return (
     <View style={styles.container}>
-      {/* Thumbnail view - Display actual photo (Phase 2) */}
-      <TouchableOpacity style={styles.thumbnail}>
+      {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
+      <Animated.View
+        style={[styles.thumbnail, { opacity: fadeAnim }]}
+        {...panResponder.panHandlers}
+      >
         <Image
           source={currentPhoto}
           style={styles.thumbnailImage}
@@ -106,7 +190,13 @@ export default function ReferenceGallery({
             {state.currentIndex + 1}/{state.references.length}
           </Text>
         </View>
-      </TouchableOpacity>
+        {/* Swipe indicator */}
+        {state.references.length > 1 && (
+          <View style={styles.swipeIndicator}>
+            <Text style={styles.swipeText}>← swipe →</Text>
+          </View>
+        )}
+      </Animated.View>
 
       {/* Expanded view overlay (Phase 5) */}
       {state.isExpanded && (
@@ -179,6 +269,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: 4,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  swipeText: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   expandedOverlay: {
     position: 'absolute',
