@@ -1,0 +1,13 @@
+ Missing Category:
+  - portrait-full-indoors - Completely missing (0 images)
+
+  Low Count Categories (< 4 images):
+  - portrait-full-restaurant: 1 image (need +6 more)
+  - portrait-full-beach: 2 images (need +5 more)
+  - portrait-half-indoors: 3 images (need +4 more)
+  - close-up-restaurant: 4 images (borderline)
+
+  Scenario Imbalance:
+  - portrait-full: Only 7 total images (needs ~14 more to match other scenarios)
+  - portrait-half: 47 images (well covered)
+  - close-up: 31 images (good)

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import TestSwipe from '@/components/TestSwipe';
 
 const scenarios = [
   { id: 'portrait-full', title: 'Portrait\nFull Body', icon: '🧍' },
@@ -31,6 +32,9 @@ export default function ScenarioScreen() {
           ))}
         </View>
       </View>
+
+      {/* Test swipe component for debugging */}
+      <TestSwipe />
     </SafeAreaView>
   );
 }
@@ -44,7 +48,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 20,
+    paddingBottom: 200, // Extra padding for test component at bottom
   },
   title: {
     fontSize: 32,
