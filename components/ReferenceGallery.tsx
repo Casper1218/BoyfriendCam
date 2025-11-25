@@ -7,6 +7,7 @@ export interface ReferenceGalleryProps {
   scenario: string;  // 'portrait-full', 'portrait-half', 'close-up'
   location: string;  // 'outdoors', 'indoors', 'restaurant', 'beach'
   onReferenceChange?: (index: number) => void;
+  showDebugInfo?: boolean; // Show debug info and logs
 }
 
 interface ReferenceGalleryState {
@@ -27,7 +28,8 @@ interface ReferenceGalleryState {
 export default function ReferenceGallery({
   scenario,
   location,
-  onReferenceChange
+  onReferenceChange,
+  showDebugInfo = false
 }: ReferenceGalleryProps) {
   // Component state
   const [state, setState] = useState<ReferenceGalleryState>({
@@ -43,19 +45,28 @@ export default function ReferenceGallery({
   // Animation for fade effect (Phase 4)
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
+  // CRITICAL FIX: Use ref to store references so panResponder can access current value
+  // PanResponder is created once and captures stale state - refs solve this!
+  const referencesRef = useRef<any[]>([]);
+  const currentIndexRef = useRef<number>(0);
+
   // Swipe gesture configuration (Phase 4)
   const SWIPE_THRESHOLD = 50; // Minimum distance for swipe detection
 
   // Load reference photos based on scenario and location (Phase 2)
   useEffect(() => {
-    console.log('[LOAD] useEffect triggered');
-    console.log('[LOAD] Scenario:', scenario, 'Location:', location);
-    console.log('[LOAD] Scenario type:', typeof scenario, 'Location type:', typeof location);
+    if (showDebugInfo) {
+      console.log('[LOAD] useEffect triggered');
+      console.log('[LOAD] Scenario:', scenario, 'Location:', location);
+      console.log('[LOAD] Scenario type:', typeof scenario, 'Location type:', typeof location);
+    }
 
     try {
       const photos = getReferencePhotos(scenario, location);
-      console.log('[LOAD] getReferencePhotos returned:', photos);
-      console.log('[LOAD] Photos count:', photos.length);
+      if (showDebugInfo) {
+        console.log('[LOAD] getReferencePhotos returned:', photos);
+        console.log('[LOAD] Photos count:', photos.length);
+      }
 
       setState(prev => ({
         ...prev,
@@ -64,8 +75,15 @@ export default function ReferenceGallery({
         isLoading: false,
       }));
 
-      setDebugText(`[LOAD] Loaded ${photos.length} photos for ${scenario}-${location}`);
-      console.log('[LOAD] State updated successfully');
+      // CRITICAL: Update refs so panResponder can access current values
+      referencesRef.current = photos;
+      currentIndexRef.current = 0;
+
+      if (showDebugInfo) {
+        setDebugText(`[LOAD] Loaded ${photos.length} photos for ${scenario}-${location}`);
+        console.log('[LOAD] State updated successfully');
+        console.log('[LOAD] Refs updated - referencesRef.current.length:', referencesRef.current.length);
+      }
     } catch (error) {
       console.error('[LOAD] Failed to load reference photos:', error);
       setState(prev => ({
@@ -73,9 +91,11 @@ export default function ReferenceGallery({
         references: [],
         isLoading: false,
       }));
-      setDebugText(`[LOAD] ERROR: ${error}`);
+      if (showDebugInfo) {
+        setDebugText(`[LOAD] ERROR: ${error}`);
+      }
     }
-  }, [scenario, location]);
+  }, [scenario, location, showDebugInfo]);
 
   // Notify parent when reference changes
   useEffect(() => {
@@ -86,16 +106,23 @@ export default function ReferenceGallery({
 
   // Navigate to next/previous reference with fade animation (Phase 4)
   const navigateReference = (direction: 'next' | 'prev') => {
-    console.log('[NAV] Called with direction:', direction);
-    console.log('[NAV] Current index:', state.currentIndex);
-    console.log('[NAV] Total references:', state.references.length);
+    // CRITICAL FIX: Use refs instead of state - panResponder has closure over stale state!
+    if (showDebugInfo) {
+      console.log('[NAV] Called with direction:', direction);
+      console.log('[NAV] Current index (ref):', currentIndexRef.current);
+      console.log('[NAV] Total references (ref):', referencesRef.current.length);
+    }
 
-    if (state.references.length <= 1) {
-      setDebugText(`[NAV] Only ${state.references.length} photo(s), can't swipe`);
+    if (referencesRef.current.length <= 1) {
+      if (showDebugInfo) {
+        setDebugText(`[NAV] Only ${referencesRef.current.length} photo(s), can't swipe`);
+      }
       return;
     }
 
-    setDebugText(`[NAV] Swiping ${direction}...`);
+    if (showDebugInfo) {
+      setDebugText(`[NAV] Swiping ${direction}...`);
+    }
 
     // Fade out
     Animated.timing(fadeAnim, {
@@ -103,14 +130,25 @@ export default function ReferenceGallery({
       duration: 100,
       useNativeDriver: true,
     }).start(() => {
-      console.log('[NAV] Fade out complete, updating index');
-      // Update index with wrapping
+      if (showDebugInfo) {
+        console.log('[NAV] Fade out complete, updating index');
+      }
+
+      // Calculate new index using refs
+      const newIndex = direction === 'next'
+        ? (currentIndexRef.current + 1) % referencesRef.current.length
+        : (currentIndexRef.current - 1 + referencesRef.current.length) % referencesRef.current.length;
+
+      if (showDebugInfo) {
+        console.log('[NAV] Changing from', currentIndexRef.current, 'to', newIndex);
+      }
+
+      // Update BOTH ref and state
+      currentIndexRef.current = newIndex;
       setState(prev => {
-        const newIndex = direction === 'next'
-          ? (prev.currentIndex + 1) % prev.references.length
-          : (prev.currentIndex - 1 + prev.references.length) % prev.references.length;
-        console.log('[NAV] Changing from', prev.currentIndex, 'to', newIndex);
-        setDebugText(`[NAV] Changed to ${newIndex + 1}/${prev.references.length}`);
+        if (showDebugInfo) {
+          setDebugText(`[NAV] Changed to ${newIndex + 1}/${referencesRef.current.length}`);
+        }
         return { ...prev, currentIndex: newIndex };
       });
 
@@ -120,7 +158,9 @@ export default function ReferenceGallery({
         duration: 100,
         useNativeDriver: true,
       }).start(() => {
-        console.log('[NAV] Fade in complete');
+        if (showDebugInfo) {
+          console.log('[NAV] Fade in complete');
+        }
       });
     });
   };
@@ -129,23 +169,23 @@ export default function ReferenceGallery({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => {
-        setDebugText('[START] Should set responder');
+        if (showDebugInfo) setDebugText('[START] Should set responder');
         return true;
       },
       onStartShouldSetPanResponderCapture: () => {
-        setDebugText('[START CAPTURE] Capturing touch');
+        if (showDebugInfo) setDebugText('[START CAPTURE] Capturing touch');
         return true;
       },
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const shouldSet = Math.abs(gestureState.dx) > 5;
-        setDebugText(`[MOVE] dx=${Math.round(gestureState.dx)}, shouldSet=${shouldSet}`);
+        if (showDebugInfo) setDebugText(`[MOVE] dx=${Math.round(gestureState.dx)}, shouldSet=${shouldSet}`);
         return shouldSet;
       },
       onMoveShouldSetPanResponderCapture: (_, gestureState) => {
         return Math.abs(gestureState.dx) > 5;
       },
       onPanResponderReject: () => {
-        setDebugText('[REJECTED] Another responder claimed');
+        if (showDebugInfo) setDebugText('[REJECTED] Another responder claimed');
       },
       onShouldBlockNativeResponder: () => {
         // Block native components from stealing
@@ -153,11 +193,11 @@ export default function ReferenceGallery({
       },
 
       onPanResponderGrant: (_, gestureState) => {
-        setDebugText(`[GRANT] Touch started at dx=${gestureState.dx}`);
+        if (showDebugInfo) setDebugText(`[GRANT] Touch started at dx=${gestureState.dx}`);
       },
 
       onPanResponderMove: (_, gestureState) => {
-        setDebugText(`[MOVE] Dragging: dx=${Math.round(gestureState.dx)}px`);
+        if (showDebugInfo) setDebugText(`[MOVE] Dragging: dx=${Math.round(gestureState.dx)}px`);
       },
 
       onPanResponderRelease: (_, gestureState) => {
@@ -166,13 +206,17 @@ export default function ReferenceGallery({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
 
-        console.log('[RELEASE] dx:', dx, 'dy:', dy, 'threshold:', SWIPE_THRESHOLD);
-        console.log('[RELEASE] Horizontal?', absDx > absDy, 'Long enough?', absDx > SWIPE_THRESHOLD);
+        if (showDebugInfo) {
+          console.log('[RELEASE] dx:', dx, 'dy:', dy, 'threshold:', SWIPE_THRESHOLD);
+          console.log('[RELEASE] Horizontal?', absDx > absDy, 'Long enough?', absDx > SWIPE_THRESHOLD);
+        }
 
         // Only process horizontal swipes that exceed threshold
         if (absDx > absDy && absDx > SWIPE_THRESHOLD) {
-          console.log('[RELEASE] VALID SWIPE! Direction:', dx > 0 ? 'RIGHT (prev)' : 'LEFT (next)');
-          setDebugText(`[RELEASE] Valid ${absDx}px swipe! Calling navigate...`);
+          if (showDebugInfo) {
+            console.log('[RELEASE] VALID SWIPE! Direction:', dx > 0 ? 'RIGHT (prev)' : 'LEFT (next)');
+            setDebugText(`[RELEASE] Valid ${absDx}px swipe! Calling navigate...`);
+          }
 
           if (dx > 0) {
             navigateReference('prev');
@@ -180,17 +224,19 @@ export default function ReferenceGallery({
             navigateReference('next');
           }
         } else {
-          console.log('[RELEASE] REJECTED - Too short or not horizontal');
-          setDebugText(`[RELEASE] Too short: ${Math.round(absDx)}px (need ${SWIPE_THRESHOLD}px)`);
+          if (showDebugInfo) {
+            console.log('[RELEASE] REJECTED - Too short or not horizontal');
+            setDebugText(`[RELEASE] Too short: ${Math.round(absDx)}px (need ${SWIPE_THRESHOLD}px)`);
+          }
         }
       },
 
       onPanResponderTerminate: (_, gestureState) => {
-        setDebugText(`[TERMINATED] Gesture stolen at dx=${Math.round(gestureState.dx)}px`);
+        if (showDebugInfo) setDebugText(`[TERMINATED] Gesture stolen at dx=${Math.round(gestureState.dx)}px`);
       },
 
       onPanResponderTerminationRequest: () => {
-        setDebugText('[TERMINATION REQUEST] Blocking!');
+        if (showDebugInfo) setDebugText('[TERMINATION REQUEST] Blocking!');
         return false; // Don't let others steal our gesture!
       },
     })
@@ -225,15 +271,17 @@ export default function ReferenceGallery({
 
   return (
     <View style={styles.container}>
-      {/* DEBUG: Title */}
-      <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>
+      {/* DEBUG: Title - only shown if debug enabled */}
+      {showDebugInfo && <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>}
 
-      {/* DEBUG: Props and State */}
-      <View style={styles.debugInfo}>
-        <Text style={styles.debugInfoText}>Props: {scenario} + {location}</Text>
-        <Text style={styles.debugInfoText}>State: {state.references.length} photos loaded</Text>
-        <Text style={styles.debugInfoText}>Current: {state.currentIndex + 1}/{state.references.length}</Text>
-      </View>
+      {/* DEBUG: Props and State - only shown if debug enabled */}
+      {showDebugInfo && (
+        <View style={styles.debugInfo}>
+          <Text style={styles.debugInfoText}>Props: {scenario} + {location}</Text>
+          <Text style={styles.debugInfoText}>State: {state.references.length} photos loaded</Text>
+          <Text style={styles.debugInfoText}>Current: {state.currentIndex + 1}/{state.references.length}</Text>
+        </View>
+      )}
 
       {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
       <Animated.View
@@ -259,10 +307,12 @@ export default function ReferenceGallery({
         )}
       </Animated.View>
 
-      {/* DEBUG: Gesture logging */}
-      <View style={styles.debugBox}>
-        <Text style={styles.debugText}>{debugText}</Text>
-      </View>
+      {/* DEBUG: Gesture logging - only shown if debug enabled */}
+      {showDebugInfo && (
+        <View style={styles.debugBox}>
+          <Text style={styles.debugText}>{debugText}</Text>
+        </View>
+      )}
 
       {/* Expanded view overlay (Phase 5) */}
       {state.isExpanded && (
@@ -278,9 +328,8 @@ export default function ReferenceGallery({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -125 }, { translateY: -200 }], // Center: half of width and height
+    bottom: 100, // Above camera controls
+    right: 16, // Right margin
     zIndex: 10,
     alignItems: 'center',
   },
@@ -308,8 +357,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   placeholder: {
-    width: 80,
-    height: 120,
+    width: 100,
+    height: 150,
     backgroundColor: '#1a1a1a',
     borderWidth: 2,
     borderColor: '#fff',
@@ -329,10 +378,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   thumbnail: {
-    width: 250,
-    height: 400,
+    width: 100,
+    height: 150,
     backgroundColor: '#1a1a1a',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#fff',
     borderRadius: 8,
     overflow: 'hidden',
@@ -357,25 +406,25 @@ const styles = StyleSheet.create({
   },
   counterText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
   },
   swipeIndicator: {
     position: 'absolute',
-    top: 8,
+    top: 4,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
   swipeText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '600',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
   debugBox: {
     marginTop: 12,
