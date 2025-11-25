@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as MediaLibrary from 'expo-media-library';
+import ReferenceGallery from '@/components/ReferenceGallery';
 
 const tips = {
   'portrait-full': {
@@ -98,9 +99,9 @@ export default function CameraScreen() {
         </View>
       </SafeAreaView>
       
-      <CameraView 
+      <CameraView
         ref={cameraRef}
-        style={styles.camera} 
+        style={styles.camera}
         facing={facing}
       >
         <View style={styles.gridOverlay}>
@@ -109,6 +110,12 @@ export default function CameraScreen() {
           <View style={[styles.gridLine, styles.horizontalLine1]} />
           <View style={[styles.gridLine, styles.horizontalLine2]} />
         </View>
+
+        {/* Reference Gallery - Phase 1 Integration */}
+        <ReferenceGallery
+          scenario={scenario as string}
+          location={location as string}
+        />
       </CameraView>
 
       <SafeAreaView style={styles.controlsContainer}>
