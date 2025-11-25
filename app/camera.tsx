@@ -5,6 +5,7 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as MediaLibrary from 'expo-media-library';
 import ReferenceGallery from '@/components/ReferenceGallery';
+import { useDevSettings } from '@/contexts/DevContext';
 
 const tips = {
   'portrait-full': {
@@ -33,6 +34,7 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [mediaLibraryPermission, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
   const cameraRef = useRef<CameraView>(null);
+  const { settings } = useDevSettings();
 
   // Test button state
   const [testButtonColor, setTestButtonColor] = useState('#FF6B6B');
@@ -121,27 +123,32 @@ export default function CameraScreen() {
         facing={facing}
       />
 
-      {/* Grid overlay - moved outside CameraView to fix warning */}
-      <View style={styles.gridOverlay} pointerEvents="none">
-        <View style={[styles.gridLine, styles.verticalLine1]} />
-        <View style={[styles.gridLine, styles.verticalLine2]} />
-        <View style={[styles.gridLine, styles.horizontalLine1]} />
-        <View style={[styles.gridLine, styles.horizontalLine2]} />
-      </View>
+      {/* Grid overlay - only shown if enabled in dev settings */}
+      {settings.showGridOverlay && (
+        <View style={styles.gridOverlay} pointerEvents="none">
+          <View style={[styles.gridLine, styles.verticalLine1]} />
+          <View style={[styles.gridLine, styles.verticalLine2]} />
+          <View style={[styles.gridLine, styles.horizontalLine1]} />
+          <View style={[styles.gridLine, styles.horizontalLine2]} />
+        </View>
+      )}
 
-      {/* Test Button - positioned top-left to test camera screen interactivity */}
-      <TouchableOpacity
-        style={[styles.testButton, { backgroundColor: testButtonColor }]}
-        onPress={handleTestButtonClick}
-      >
-        <Text style={styles.testButtonText}>{testButtonText}</Text>
-        <Text style={styles.testButtonCount}>Clicks: {testClickCount}</Text>
-      </TouchableOpacity>
+      {/* Test Button - only shown if enabled in dev settings */}
+      {settings.showTestButton && (
+        <TouchableOpacity
+          style={[styles.testButton, { backgroundColor: testButtonColor }]}
+          onPress={handleTestButtonClick}
+        >
+          <Text style={styles.testButtonText}>{testButtonText}</Text>
+          <Text style={styles.testButtonCount}>Clicks: {testClickCount}</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Reference Gallery - moved outside CameraView to fix warning */}
       <ReferenceGallery
         scenario={scenario as string}
         location={location as string}
+        showDebugInfo={settings.showDebugInfo}
       />
 
       <SafeAreaView style={styles.controlsContainer}>

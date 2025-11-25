@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import TestSwipe from '@/components/TestSwipe';
+import DevControlPanel from '@/components/DevControlPanel';
+import { useDevSettings } from '@/contexts/DevContext';
 
 const scenarios = [
   { id: 'portrait-full', title: 'Portrait\nFull Body', icon: '🧍' },
@@ -11,6 +13,9 @@ const scenarios = [
 ];
 
 export default function ScenarioScreen() {
+  const [showDevPanel, setShowDevPanel] = useState(false);
+  const { settings } = useDevSettings();
+
   const handleScenarioSelect = (scenarioId: string) => {
     router.push({ pathname: '/location', params: { scenario: scenarioId } });
   };
@@ -33,8 +38,22 @@ export default function ScenarioScreen() {
         </View>
       </View>
 
-      {/* Test swipe component for debugging */}
-      <TestSwipe />
+      {/* Dev button - small and subtle in bottom left */}
+      <TouchableOpacity
+        style={styles.devButton}
+        onPress={() => setShowDevPanel(true)}
+      >
+        <Text style={styles.devButtonText}>DEV</Text>
+      </TouchableOpacity>
+
+      {/* Dev control panel */}
+      <DevControlPanel
+        visible={showDevPanel}
+        onClose={() => setShowDevPanel(false)}
+      />
+
+      {/* Test swipe component - only shown if enabled */}
+      {settings.showTestSwipe && <TestSwipe />}
     </SafeAreaView>
   );
 }
@@ -48,7 +67,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 200, // Extra padding for test component at bottom
   },
   title: {
     fontSize: 32,
@@ -82,5 +100,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  devButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    backgroundColor: '#333',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    opacity: 0.6,
+  },
+  devButtonText: {
+    color: '#888',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
