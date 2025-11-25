@@ -37,6 +37,9 @@ export default function ReferenceGallery({
     isLoading: true,
   });
 
+  // Debug logging state
+  const [debugText, setDebugText] = useState('Waiting for touch...');
+
   // Animation for fade effect (Phase 4)
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -73,6 +76,8 @@ export default function ReferenceGallery({
   // Navigate to next/previous reference with fade animation (Phase 4)
   const navigateReference = (direction: 'next' | 'prev') => {
     if (state.references.length <= 1) return;
+
+    setDebugText(`Swiped ${direction}!`);
 
     // Fade out
     Animated.timing(fadeAnim, {
@@ -113,10 +118,12 @@ export default function ReferenceGallery({
 
       onPanResponderGrant: () => {
         // Touch started - ready to track gesture
+        setDebugText('Touch started...');
       },
 
-      onPanResponderMove: () => {
-        // Tracking movement - handled in release
+      onPanResponderMove: (_, gestureState) => {
+        // Tracking movement - show live distance
+        setDebugText(`Moving: dx=${Math.round(gestureState.dx)}px`);
       },
 
       onPanResponderRelease: (_, gestureState) => {
@@ -132,11 +139,14 @@ export default function ReferenceGallery({
             // Swipe left - show next
             navigateReference('next');
           }
+        } else {
+          setDebugText(`Too short: ${Math.round(Math.abs(dx))}px (need ${SWIPE_THRESHOLD}px)`);
         }
       },
 
       onPanResponderTerminate: () => {
         // Gesture cancelled
+        setDebugText('Gesture cancelled');
       },
     })
   ).current;
@@ -170,6 +180,9 @@ export default function ReferenceGallery({
 
   return (
     <View style={styles.container}>
+      {/* DEBUG: Title */}
+      <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>
+
       {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
       <Animated.View
         style={[styles.thumbnail, { opacity: fadeAnim }]}
@@ -194,6 +207,11 @@ export default function ReferenceGallery({
         )}
       </Animated.View>
 
+      {/* DEBUG: Gesture logging */}
+      <View style={styles.debugBox}>
+        <Text style={styles.debugText}>{debugText}</Text>
+      </View>
+
       {/* Expanded view overlay (Phase 5) */}
       {state.isExpanded && (
         <View style={styles.expandedOverlay}>
@@ -208,9 +226,21 @@ export default function ReferenceGallery({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -125 }, { translateY: -200 }], // Center: half of width and height
     zIndex: 10,
+    alignItems: 'center',
+  },
+  debugTitle: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   placeholder: {
     width: 80,
@@ -234,18 +264,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   thumbnail: {
-    width: 80,
-    height: 120,
+    width: 250,
+    height: 400,
     backgroundColor: '#1a1a1a',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#fff',
-    borderRadius: 4,
+    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+    elevation: 10,
   },
   thumbnailImage: {
     width: '100%',
@@ -262,25 +292,41 @@ const styles = StyleSheet.create({
   },
   counterText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   swipeIndicator: {
     position: 'absolute',
-    top: 4,
+    top: 8,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
   swipeText: {
     color: '#fff',
-    fontSize: 8,
+    fontSize: 14,
     fontWeight: '600',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  debugBox: {
+    marginTop: 12,
+    backgroundColor: '#1a1a1a',
+    padding: 12,
     borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#4ECDC4',
+    minWidth: 250,
+  },
+  debugText: {
+    color: '#4ECDC4',
+    fontSize: 14,
+    textAlign: 'center',
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
   },
   expandedOverlay: {
     position: 'absolute',

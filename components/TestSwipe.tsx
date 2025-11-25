@@ -1,18 +1,26 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, PanResponder, Animated } from 'react-native';
+import { View, Text, StyleSheet, PanResponder, Animated, Image } from 'react-native';
 
 /**
  * TestSwipe Component - Simple swipe detection test
  *
  * This is a debugging component to verify PanResponder works.
- * Displays colored boxes with numbers that change on swipe.
+ * Now displays actual reference photos that change on swipe.
  */
 export default function TestSwipe() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastGesture, setLastGesture] = useState('No swipe yet');
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
+  // Sample photos from portrait-half-beach category
+  const testPhotos = [
+    require('@/assets/images/photos/portrait-half-beach/1.jpg'),
+    require('@/assets/images/photos/portrait-half-beach/2.jpg'),
+    require('@/assets/images/photos/portrait-half-beach/3.jpg'),
+    require('@/assets/images/photos/portrait-half-beach/4.jpg'),
+    require('@/assets/images/photos/portrait-half-beach/5.jpg'),
+    require('@/assets/images/photos/portrait-half-beach/6.jpg'),
+  ];
   const SWIPE_THRESHOLD = 50;
 
   // Handle swipe navigation
@@ -28,9 +36,9 @@ export default function TestSwipe() {
       // Update index
       setCurrentIndex(prev => {
         if (direction === 'left') {
-          return (prev + 1) % colors.length;
+          return (prev + 1) % testPhotos.length;
         } else {
-          return (prev - 1 + colors.length) % colors.length;
+          return (prev - 1 + testPhotos.length) % testPhotos.length;
         }
       });
 
@@ -85,21 +93,24 @@ export default function TestSwipe() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>SWIPE TEST</Text>
-      <Text style={styles.subtitle}>Swipe left or right on the colored box</Text>
+      <Text style={styles.title}>SWIPE TEST WITH PHOTOS</Text>
+      <Text style={styles.subtitle}>Swipe left or right on the photo</Text>
 
       <Animated.View
         style={[
           styles.swipeBox,
-          {
-            backgroundColor: colors[currentIndex],
-            opacity: fadeAnim
-          }
+          { opacity: fadeAnim }
         ]}
         {...panResponder.panHandlers}
       >
-        <Text style={styles.indexText}>{currentIndex + 1}</Text>
-        <Text style={styles.totalText}>of {colors.length}</Text>
+        <Image
+          source={testPhotos[currentIndex]}
+          style={styles.photoImage}
+          resizeMode="cover"
+        />
+        <View style={styles.counter}>
+          <Text style={styles.counterText}>{currentIndex + 1}/{testPhotos.length}</Text>
+        </View>
         <View style={styles.arrow}>
           <Text style={styles.arrowText}>← swipe →</Text>
         </View>
@@ -139,23 +150,32 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   swipeBox: {
-    height: 120,
+    height: 180,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
     borderWidth: 3,
     borderColor: '#fff',
     marginBottom: 12,
+    backgroundColor: '#1a1a1a',
   },
-  indexText: {
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  counter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  counterText: {
     color: '#fff',
-    fontSize: 48,
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  totalText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: -8,
+    textAlign: 'center',
   },
   arrow: {
     position: 'absolute',

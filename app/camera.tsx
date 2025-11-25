@@ -34,6 +34,22 @@ export default function CameraScreen() {
   const [mediaLibraryPermission, requestMediaLibraryPermission] = MediaLibrary.usePermissions();
   const cameraRef = useRef<CameraView>(null);
 
+  // Test button state
+  const [testButtonColor, setTestButtonColor] = useState('#FF6B6B');
+  const [testButtonText, setTestButtonText] = useState('TEST BUTTON');
+  const [testClickCount, setTestClickCount] = useState(0);
+
+  const handleTestButtonClick = () => {
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F'];
+    const texts = ['WORKS!', 'CLICKED!', 'TESTING', 'SUCCESS', 'BUTTON OK', 'INTERACTIVE'];
+    setTestClickCount(prev => {
+      const newCount = prev + 1;
+      setTestButtonColor(colors[newCount % colors.length]);
+      setTestButtonText(texts[newCount % texts.length]);
+      return newCount;
+    });
+  };
+
   if (!permission) {
     return <View />;
   }
@@ -103,20 +119,30 @@ export default function CameraScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
-      >
-        <View style={styles.gridOverlay}>
-          <View style={[styles.gridLine, styles.verticalLine1]} />
-          <View style={[styles.gridLine, styles.verticalLine2]} />
-          <View style={[styles.gridLine, styles.horizontalLine1]} />
-          <View style={[styles.gridLine, styles.horizontalLine2]} />
-        </View>
+      />
 
-        {/* Reference Gallery - Phase 1 Integration */}
-        <ReferenceGallery
-          scenario={scenario as string}
-          location={location as string}
-        />
-      </CameraView>
+      {/* Grid overlay - moved outside CameraView to fix warning */}
+      <View style={styles.gridOverlay} pointerEvents="none">
+        <View style={[styles.gridLine, styles.verticalLine1]} />
+        <View style={[styles.gridLine, styles.verticalLine2]} />
+        <View style={[styles.gridLine, styles.horizontalLine1]} />
+        <View style={[styles.gridLine, styles.horizontalLine2]} />
+      </View>
+
+      {/* Test Button - positioned top-left to test camera screen interactivity */}
+      <TouchableOpacity
+        style={[styles.testButton, { backgroundColor: testButtonColor }]}
+        onPress={handleTestButtonClick}
+      >
+        <Text style={styles.testButtonText}>{testButtonText}</Text>
+        <Text style={styles.testButtonCount}>Clicks: {testClickCount}</Text>
+      </TouchableOpacity>
+
+      {/* Reference Gallery - moved outside CameraView to fix warning */}
+      <ReferenceGallery
+        scenario={scenario as string}
+        location={location as string}
+      />
 
       <SafeAreaView style={styles.controlsContainer}>
         <View style={styles.controls}>
@@ -184,8 +210,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   gridOverlay: {
-    flex: 1,
-    position: 'relative',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  testButton: {
+    position: 'absolute',
+    top: 100,
+    left: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+    zIndex: 100,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  testButtonCount: {
+    color: '#fff',
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
   },
   gridLine: {
     position: 'absolute',
