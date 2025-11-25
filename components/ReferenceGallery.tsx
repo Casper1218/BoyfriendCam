@@ -40,8 +40,7 @@ export default function ReferenceGallery({
   // Animation for fade effect (Phase 4)
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // Swipe gesture tracking (Phase 4)
-  const swipeStart = useRef({ x: 0, y: 0 });
+  // Swipe gesture configuration (Phase 4)
   const SWIPE_THRESHOLD = 50; // Minimum distance for swipe detection
 
   // Load reference photos based on scenario and location (Phase 2)
@@ -102,32 +101,29 @@ export default function ReferenceGallery({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-
-      onPanResponderGrant: (evt) => {
-        // Record starting position
-        swipeStart.current = {
-          x: evt.nativeEvent.pageX,
-          y: evt.nativeEvent.pageY,
-        };
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only capture if horizontal movement detected
+        return Math.abs(gestureState.dx) > 5;
+      },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        // Capture horizontal swipes
+        return Math.abs(gestureState.dx) > 5;
       },
 
-      onPanResponderMove: (evt, gestureState) => {
-        // Allow vertical camera movements, only track horizontal
-        const dx = Math.abs(gestureState.dx);
-        const dy = Math.abs(gestureState.dy);
-
-        // If horizontal movement dominates, prevent vertical scrolling
-        if (dx > dy && dx > 10) {
-          return true;
-        }
+      onPanResponderGrant: () => {
+        // Touch started - ready to track gesture
       },
 
-      onPanResponderRelease: (evt, gestureState) => {
+      onPanResponderMove: () => {
+        // Tracking movement - handled in release
+      },
+
+      onPanResponderRelease: (_, gestureState) => {
         const dx = gestureState.dx;
         const dy = gestureState.dy;
 
-        // Only process horizontal swipes
+        // Only process horizontal swipes that exceed threshold
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
           if (dx > 0) {
             // Swipe right - show previous
