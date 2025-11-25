@@ -105,48 +105,63 @@ export default function ReferenceGallery({
   // PanResponder for swipe gestures (Phase 4)
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
+      onStartShouldSetPanResponder: () => {
+        setDebugText('[START] Should set responder');
+        return true;
+      },
+      onStartShouldSetPanResponderCapture: () => {
+        setDebugText('[START CAPTURE] Capturing touch');
+        return true;
+      },
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only capture if horizontal movement detected
-        return Math.abs(gestureState.dx) > 5;
+        const shouldSet = Math.abs(gestureState.dx) > 5;
+        setDebugText(`[MOVE] dx=${Math.round(gestureState.dx)}, shouldSet=${shouldSet}`);
+        return shouldSet;
       },
       onMoveShouldSetPanResponderCapture: (_, gestureState) => {
-        // Capture horizontal swipes
         return Math.abs(gestureState.dx) > 5;
       },
+      onPanResponderReject: () => {
+        setDebugText('[REJECTED] Another responder claimed');
+      },
+      onShouldBlockNativeResponder: () => {
+        // Block native components from stealing
+        return true;
+      },
 
-      onPanResponderGrant: () => {
-        // Touch started - ready to track gesture
-        setDebugText('Touch started...');
+      onPanResponderGrant: (_, gestureState) => {
+        setDebugText(`[GRANT] Touch started at dx=${gestureState.dx}`);
       },
 
       onPanResponderMove: (_, gestureState) => {
-        // Tracking movement - show live distance
-        setDebugText(`Moving: dx=${Math.round(gestureState.dx)}px`);
+        setDebugText(`[MOVE] Dragging: dx=${Math.round(gestureState.dx)}px`);
       },
 
       onPanResponderRelease: (_, gestureState) => {
+        setDebugText(`[RELEASE] Lifted at dx=${Math.round(gestureState.dx)}px`);
+
         const dx = gestureState.dx;
         const dy = gestureState.dy;
 
         // Only process horizontal swipes that exceed threshold
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
           if (dx > 0) {
-            // Swipe right - show previous
             navigateReference('prev');
           } else {
-            // Swipe left - show next
             navigateReference('next');
           }
         } else {
-          setDebugText(`Too short: ${Math.round(Math.abs(dx))}px (need ${SWIPE_THRESHOLD}px)`);
+          setDebugText(`[RELEASE] Too short: ${Math.round(Math.abs(dx))}px (need ${SWIPE_THRESHOLD}px)`);
         }
       },
 
-      onPanResponderTerminate: () => {
-        // Gesture cancelled
-        setDebugText('Gesture cancelled');
+      onPanResponderTerminate: (_, gestureState) => {
+        setDebugText(`[TERMINATED] Gesture stolen at dx=${Math.round(gestureState.dx)}px`);
+      },
+
+      onPanResponderTerminationRequest: () => {
+        setDebugText('[TERMINATION REQUEST] Blocking!');
+        return false; // Don't let others steal our gesture!
       },
     })
   ).current;
