@@ -48,13 +48,13 @@ Provide visual reference examples without switching apps. Serves as baseline sol
 - [x] Test: Smooth swiping between all references (verified on device)
 
 ### Phase 5: Tap-to-Expand Feature
-- [ ] Detect tap on thumbnail
-- [ ] Create overlay component (dark background rgba(0,0,0,0.7))
-- [ ] Display image at 50% screen width, centered
-- [ ] Maintain aspect ratio
-- [ ] Implement tap-to-dismiss anywhere
-- [ ] Add close button as backup
-- [ ] Test: Expand/collapse works smoothly
+- [x] Detect tap on thumbnail
+- [x] Create overlay component (dark background rgba(0,0,0,0.85))
+- [x] Display image at 50% screen width, centered
+- [x] Maintain aspect ratio
+- [x] Implement tap-to-dismiss anywhere
+- [x] Add close button as backup
+- [x] Test: Expand/collapse works smoothly
 
 ### Phase 6: Camera Integration
 - [x] Import ReferenceGallery in `app/camera.tsx`
@@ -191,6 +191,17 @@ const loadReferences = (scenario: string, location: string) => {
 - **CameraView Issue**: Moved ReferenceGallery outside CameraView component (was blocking gestures and causing warnings)
 - **Final Positioning**: Bottom-right corner, 100x150px (increased from 80x120px for better swipe usability)
 - **Status**: ✅ Swipe gestures working smoothly on both simulator and physical device
+
+### Phase 5 (2024-11-25)
+- **Implementation**: Tap-to-expand functionality complete with full-screen overlay
+- **Tap Detection**: Added TAP_THRESHOLD (10px) to distinguish taps from swipes using total movement distance
+- **Gesture Logic**: If movement < 10px → tap (toggle expanded), if horizontal movement > 50px → swipe (change photo)
+- **Overlay Structure**: Refactored to render expanded view outside container using Fragment (<>) for proper full-screen positioning
+- **Expanded View**: Dark background (rgba 0,0,0,0.85), image at 50% screen width, centered with aspect ratio maintained
+- **Dismiss Methods**: Tap anywhere on overlay OR tap close button (X) in top-right corner
+- **UI Elements**: Photo counter shown in expanded view, close button for backup dismissal
+- **Z-Index**: Expanded overlay set to zIndex: 1000 to ensure it appears above all camera elements
+- **Status**: ✅ Phase 5 complete - tap-to-expand implemented with proper gesture detection and full-screen overlay
 
 ---
 

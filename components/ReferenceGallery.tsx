@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Text, PanResponder, Animated } from 'react-native';
+import { View, Image, StyleSheet, Text, PanResponder, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { getReferencePhotos } from '@/utils/referencePhotos';
 
 // TypeScript Interfaces
@@ -52,6 +52,7 @@ export default function ReferenceGallery({
 
   // Swipe gesture configuration (Phase 4)
   const SWIPE_THRESHOLD = 50; // Minimum distance for swipe detection
+  const TAP_THRESHOLD = 10; // Maximum movement for tap detection (Phase 5)
 
   // Load reference photos based on scenario and location (Phase 2)
   useEffect(() => {
@@ -165,6 +166,17 @@ export default function ReferenceGallery({
     });
   };
 
+  // Toggle expanded view (Phase 5)
+  const toggleExpanded = () => {
+    setState(prev => ({
+      ...prev,
+      isExpanded: !prev.isExpanded,
+    }));
+    if (showDebugInfo) {
+      console.log('[EXPAND] Toggled to:', !state.isExpanded);
+    }
+  };
+
   // PanResponder for swipe gestures (Phase 4)
   const panResponder = useRef(
     PanResponder.create({
@@ -205,10 +217,21 @@ export default function ReferenceGallery({
         const dy = gestureState.dy;
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
+        const totalMovement = Math.sqrt(dx * dx + dy * dy);
 
         if (showDebugInfo) {
-          console.log('[RELEASE] dx:', dx, 'dy:', dy, 'threshold:', SWIPE_THRESHOLD);
-          console.log('[RELEASE] Horizontal?', absDx > absDy, 'Long enough?', absDx > SWIPE_THRESHOLD);
+          console.log('[RELEASE] dx:', dx, 'dy:', dy, 'total movement:', totalMovement);
+          console.log('[RELEASE] Tap threshold:', TAP_THRESHOLD, 'Swipe threshold:', SWIPE_THRESHOLD);
+        }
+
+        // Detect tap (minimal movement)
+        if (totalMovement < TAP_THRESHOLD) {
+          if (showDebugInfo) {
+            console.log('[RELEASE] TAP detected! Toggling expanded view');
+            setDebugText(`[RELEASE] Tap! Movement: ${Math.round(totalMovement)}px`);
+          }
+          toggleExpanded();
+          return;
         }
 
         // Only process horizontal swipes that exceed threshold
@@ -270,57 +293,86 @@ export default function ReferenceGallery({
   const currentPhoto = state.references[state.currentIndex];
 
   return (
-    <View style={styles.container}>
-      {/* DEBUG: Title - only shown if debug enabled */}
-      {showDebugInfo && <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>}
+    <>
+      {/* Main thumbnail container */}
+      <View style={styles.container}>
+        {/* DEBUG: Title - only shown if debug enabled */}
+        {showDebugInfo && <Text style={styles.debugTitle}>REFERENCE GALLERY DEBUG</Text>}
 
-      {/* DEBUG: Props and State - only shown if debug enabled */}
-      {showDebugInfo && (
-        <View style={styles.debugInfo}>
-          <Text style={styles.debugInfoText}>Props: {scenario} + {location}</Text>
-          <Text style={styles.debugInfoText}>State: {state.references.length} photos loaded</Text>
-          <Text style={styles.debugInfoText}>Current: {state.currentIndex + 1}/{state.references.length}</Text>
-        </View>
-      )}
-
-      {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
-      <Animated.View
-        style={[styles.thumbnail, { opacity: fadeAnim }]}
-        {...panResponder.panHandlers}
-      >
-        <Image
-          source={currentPhoto}
-          style={styles.thumbnailImage}
-          resizeMode="cover"
-        />
-        {/* Photo counter */}
-        <View style={styles.counter}>
-          <Text style={styles.counterText}>
-            {state.currentIndex + 1}/{state.references.length}
-          </Text>
-        </View>
-        {/* Swipe indicator */}
-        {state.references.length > 1 && (
-          <View style={styles.swipeIndicator}>
-            <Text style={styles.swipeText}>← swipe →</Text>
+        {/* DEBUG: Props and State - only shown if debug enabled */}
+        {showDebugInfo && (
+          <View style={styles.debugInfo}>
+            <Text style={styles.debugInfoText}>Props: {scenario} + {location}</Text>
+            <Text style={styles.debugInfoText}>State: {state.references.length} photos loaded</Text>
+            <Text style={styles.debugInfoText}>Current: {state.currentIndex + 1}/{state.references.length}</Text>
           </View>
         )}
-      </Animated.View>
 
-      {/* DEBUG: Gesture logging - only shown if debug enabled */}
-      {showDebugInfo && (
-        <View style={styles.debugBox}>
-          <Text style={styles.debugText}>{debugText}</Text>
-        </View>
-      )}
+        {/* Thumbnail view - Display actual photo with swipe gestures (Phase 4) */}
+        <Animated.View
+          style={[styles.thumbnail, { opacity: fadeAnim }]}
+          {...panResponder.panHandlers}
+        >
+          <Image
+            source={currentPhoto}
+            style={styles.thumbnailImage}
+            resizeMode="cover"
+          />
+          {/* Photo counter */}
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>
+              {state.currentIndex + 1}/{state.references.length}
+            </Text>
+          </View>
+          {/* Swipe indicator */}
+          {state.references.length > 1 && (
+            <View style={styles.swipeIndicator}>
+              <Text style={styles.swipeText}>← swipe →</Text>
+            </View>
+          )}
+        </Animated.View>
 
-      {/* Expanded view overlay (Phase 5) */}
+        {/* DEBUG: Gesture logging - only shown if debug enabled */}
+        {showDebugInfo && (
+          <View style={styles.debugBox}>
+            <Text style={styles.debugText}>{debugText}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Expanded view overlay (Phase 5) - Rendered outside container for full-screen coverage */}
       {state.isExpanded && (
-        <View style={styles.expandedOverlay}>
-          <Text style={styles.expandedText}>Expanded View</Text>
-        </View>
+        <TouchableWithoutFeedback onPress={toggleExpanded}>
+          <View style={styles.expandedOverlay}>
+            {/* Dark background overlay */}
+            <View style={styles.expandedBackground} />
+
+            {/* Centered image container */}
+            <View style={styles.expandedImageContainer}>
+              <Image
+                source={currentPhoto}
+                style={styles.expandedImage}
+                resizeMode="contain"
+              />
+
+              {/* Close button as backup */}
+              <TouchableWithoutFeedback onPress={toggleExpanded}>
+                <View style={styles.closeButton}>
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </View>
+              </TouchableWithoutFeedback>
+
+              {/* Photo counter in expanded view */}
+              <View style={styles.expandedCounter}>
+                <Text style={styles.expandedCounterText}>
+                  {state.currentIndex + 1} / {state.references.length}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
       )}
-    </View>
+    </>
   );
 }
 
@@ -446,14 +498,74 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
-  expandedText: {
+  expandedBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  },
+  expandedImageContainer: {
+    width: Dimensions.get('window').width * 0.5, // 50% of screen width
+    maxHeight: Dimensions.get('window').height * 0.7, // Max 70% of screen height
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#fff',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.9,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  expandedImage: {
+    width: '100%',
+    height: '100%',
+    minHeight: 300,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    zIndex: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 22,
+  },
+  expandedCounter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  expandedCounterText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
