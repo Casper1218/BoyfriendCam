@@ -110,6 +110,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 6,
     opacity: 0.6,
+    zIndex: 9999, // Always on top of test components
+    elevation: 9999, // Android elevation
   },
   devButtonText: {
     color: '#888',

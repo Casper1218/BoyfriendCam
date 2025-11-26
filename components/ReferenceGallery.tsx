@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Text, PanResponder, Animated, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { View, Image, StyleSheet, Text, PanResponder, Animated, Dimensions, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 import { getReferencePhotos } from '@/utils/referencePhotos';
 
 // TypeScript Interfaces
@@ -360,11 +360,13 @@ export default function ReferenceGallery({
             />
 
             {/* Close button as backup */}
-            <TouchableWithoutFeedback onPress={toggleExpanded}>
-              <View style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </View>
-            </TouchableWithoutFeedback>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={toggleExpanded}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
 
             {/* Swipe indicator - moved from thumbnail */}
             {state.references.length > 1 && (
