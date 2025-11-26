@@ -356,7 +356,7 @@ export default function ReferenceGallery({
       {/* Expanded view overlay (Phase 5) - Rendered outside container for full-screen coverage */}
       {/* Performance: Overlay only renders when expanded, no performance impact when collapsed */}
       {state.isExpanded && (
-        <View style={styles.expandedOverlay}>
+        <View style={styles.expandedOverlay} pointerEvents="box-none">
           {/* Dark background overlay - tap to dismiss */}
           <TouchableWithoutFeedback onPress={() => {
             if (showOverlayDebug) {
