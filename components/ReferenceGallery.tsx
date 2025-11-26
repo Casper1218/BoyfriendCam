@@ -413,7 +413,6 @@ export default function ReferenceGallery({
                   toggleExpanded();
                 }}
                 activeOpacity={0.7}
-                pointerEvents="auto"
               >
                 <Text style={styles.testCloseButtonText}>TAP TO CLOSE</Text>
                 <Text style={styles.testCloseButtonStatus}>{xButtonStatus}</Text>
@@ -425,7 +424,6 @@ export default function ReferenceGallery({
                   toggleExpanded();
                 }}
                 activeOpacity={0.7}
-                pointerEvents="auto"
               >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
