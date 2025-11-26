@@ -413,3 +413,21 @@ interface ReferenceGalleryProps {
 - **Git Workflow**: Created 3 logical commits (bug fix, dev tools, docs) and pushed to feature/reference-gallery branch
 - **Status**: Phase 4 fully complete and verified, Phase 5 (Tap-to-Expand) ready to start
 - **Key Learning**: PanResponder + useRef creates persistent closures - always use refs for values that handlers need to access after component updates
+
+### 2025-11-26 01:45 - Phase 5-6 Complete & Critical X Button Fix
+- **Phase 5 Complete**: Tap-to-expand functionality fully implemented with full-screen overlay
+  - Image container displays at 85% screen width, centered with dark background
+  - Proper gesture detection: taps (< 10px movement) vs swipes (> 50px movement)
+  - Swipe gestures work in expanded view for changing photos
+- **Phase 6 Complete**: Camera integration finalized with performance optimization comments
+  - Native driver animations for 60fps transitions
+  - Conditional rendering to minimize camera impact
+- **Critical X Button Fixes**: Resolved two major issues preventing close button from working
+  - Issue 1: Button positioned relative to screen edge (overlapping status bar) instead of image container
+  - Issue 2: Aggressive PanResponder blocking all touch events to child components
+  - Solution: Moved button inside expandedImageContainer, disabled PanResponder capture phase, allowed termination requests
+  - Increased button size to 44x44px (Apple's recommended touch target) with better margins (12px)
+  - Fixed TypeScript errors by removing invalid pointerEvents prop from TouchableOpacity
+- **Created /onboard command**: Session context loading for future Claude Code sessions
+- **Status**: Phases 5-6 complete and verified on device, X button now works correctly
+- **Key Learning**: PanResponder capture phase blocks all descendant touch events - use `onStartShouldSetPanResponderCapture: false` and `onPanResponderTerminationRequest: true` to allow child components like buttons to respond
