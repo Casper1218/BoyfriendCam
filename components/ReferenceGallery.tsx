@@ -201,8 +201,8 @@ export default function ReferenceGallery({
         return true;
       },
       onStartShouldSetPanResponderCapture: () => {
-        if (showDebugInfo) setDebugText('[START CAPTURE] Capturing touch');
-        return true;
+        // Don't capture - let child components (like close button) respond first
+        return false;
       },
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const shouldSet = Math.abs(gestureState.dx) > 5;
@@ -275,8 +275,8 @@ export default function ReferenceGallery({
       },
 
       onPanResponderTerminationRequest: () => {
-        if (showDebugInfo) setDebugText('[TERMINATION REQUEST] Blocking!');
-        return false; // Don't let others steal our gesture!
+        // Allow termination for child components like buttons
+        return true;
       },
     })
   ).current;
@@ -392,43 +392,45 @@ export default function ReferenceGallery({
                 {state.currentIndex + 1} / {state.references.length}
               </Text>
             </View>
-          </Animated.View>
 
-          {/* Close button - Large centered test version */}
-          {showOverlayDebug ? (
-            <TouchableOpacity
-              style={styles.testCloseButton}
-              onPressIn={() => {
-                console.log('[OVERLAY DEBUG] ✅ X button PRESS IN detected!');
-                setXButtonStatus('PRESSING...');
-                setOverlayDebugText('X button PRESS IN detected!');
-              }}
-              onPressOut={() => {
-                console.log('[OVERLAY DEBUG] ✅ X button PRESS OUT detected!');
-                setXButtonStatus('PRESSED!');
-              }}
-              onPress={() => {
-                console.log('[OVERLAY DEBUG] ✅ X button onPress fired!');
-                setOverlayDebugText('X button onPress - closing overlay');
-                setXButtonStatus('CLOSING...');
-                toggleExpanded();
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.testCloseButtonText}>TAP TO CLOSE</Text>
-              <Text style={styles.testCloseButtonStatus}>{xButtonStatus}</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                toggleExpanded();
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          )}
+            {/* Close button - positioned relative to image container */}
+            {showOverlayDebug ? (
+              <TouchableOpacity
+                style={styles.testCloseButton}
+                onPressIn={() => {
+                  console.log('[OVERLAY DEBUG] ✅ X button PRESS IN detected!');
+                  setXButtonStatus('PRESSING...');
+                  setOverlayDebugText('X button PRESS IN detected!');
+                }}
+                onPressOut={() => {
+                  console.log('[OVERLAY DEBUG] ✅ X button PRESS OUT detected!');
+                  setXButtonStatus('PRESSED!');
+                }}
+                onPress={() => {
+                  console.log('[OVERLAY DEBUG] ✅ X button onPress fired!');
+                  setOverlayDebugText('X button onPress - closing overlay');
+                  setXButtonStatus('CLOSING...');
+                  toggleExpanded();
+                }}
+                activeOpacity={0.7}
+                pointerEvents="auto"
+              >
+                <Text style={styles.testCloseButtonText}>TAP TO CLOSE</Text>
+                <Text style={styles.testCloseButtonStatus}>{xButtonStatus}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  toggleExpanded();
+                }}
+                activeOpacity={0.7}
+                pointerEvents="auto"
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </Animated.View>
 
           {/* DEBUG: Overlay interaction logging - only shown if overlay debug enabled */}
           {showOverlayDebug && (
@@ -611,24 +613,24 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fff',
-    zIndex: 99999, // Must be higher than image container to receive touches
+    zIndex: 99999, // Must be higher than image to receive touches
     elevation: 99999, // Android elevation
   },
   closeButtonText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    lineHeight: 22,
+    lineHeight: 26,
   },
   testCloseButton: {
     position: 'absolute',
