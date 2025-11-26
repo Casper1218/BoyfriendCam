@@ -149,6 +149,7 @@ export default function CameraScreen() {
         scenario={scenario as string}
         location={location as string}
         showDebugInfo={settings.showDebugInfo}
+        showOverlayDebug={settings.showOverlayDebug}
       />
 
       <SafeAreaView style={styles.controlsContainer}>

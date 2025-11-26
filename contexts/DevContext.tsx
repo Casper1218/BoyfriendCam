@@ -6,6 +6,7 @@ export interface DevSettings {
   showTestButton: boolean;
   showDebugInfo: boolean;
   showGridOverlay: boolean;
+  showOverlayDebug: boolean;
 }
 
 interface DevContextType {
@@ -21,6 +22,7 @@ export function DevProvider({ children }: { children: ReactNode }) {
     showTestButton: false,
     showDebugInfo: false,
     showGridOverlay: true, // Grid is a core feature, default on
+    showOverlayDebug: false,
   });
 
   const updateSetting = (key: keyof DevSettings, value: boolean) => {

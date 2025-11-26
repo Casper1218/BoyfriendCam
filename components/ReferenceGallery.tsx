@@ -8,6 +8,7 @@ export interface ReferenceGalleryProps {
   location: string;  // 'outdoors', 'indoors', 'restaurant', 'beach'
   onReferenceChange?: (index: number) => void;
   showDebugInfo?: boolean; // Show debug info and logs
+  showOverlayDebug?: boolean; // Show overlay interaction debugging
 }
 
 interface ReferenceGalleryState {
@@ -29,7 +30,8 @@ export default function ReferenceGallery({
   scenario,
   location,
   onReferenceChange,
-  showDebugInfo = false
+  showDebugInfo = false,
+  showOverlayDebug = false
 }: ReferenceGalleryProps) {
   // Component state
   const [state, setState] = useState<ReferenceGalleryState>({
@@ -41,6 +43,8 @@ export default function ReferenceGallery({
 
   // Debug logging state
   const [debugText, setDebugText] = useState('Waiting for touch...');
+  const [overlayDebugText, setOverlayDebugText] = useState('Overlay not opened yet');
+  const [xButtonStatus, setXButtonStatus] = useState('NOT TOUCHED');
 
   // Animation for fade effect (Phase 4)
   // Performance: Uses native driver for 60fps animations without blocking JS thread
@@ -170,12 +174,22 @@ export default function ReferenceGallery({
 
   // Toggle expanded view (Phase 5)
   const toggleExpanded = () => {
+    const newExpandedState = !state.isExpanded;
+
+    if (showOverlayDebug) {
+      console.log('[OVERLAY DEBUG] toggleExpanded called');
+      console.log('[OVERLAY DEBUG] Current state:', state.isExpanded);
+      console.log('[OVERLAY DEBUG] New state will be:', newExpandedState);
+      setOverlayDebugText(`toggleExpanded called! ${state.isExpanded ? 'CLOSING' : 'OPENING'} overlay`);
+    }
+
     setState(prev => ({
       ...prev,
-      isExpanded: !prev.isExpanded,
+      isExpanded: newExpandedState,
     }));
+
     if (showDebugInfo) {
-      console.log('[EXPAND] Toggled to:', !state.isExpanded);
+      console.log('[EXPAND] Toggled to:', newExpandedState);
     }
   };
 
@@ -344,7 +358,13 @@ export default function ReferenceGallery({
       {state.isExpanded && (
         <View style={styles.expandedOverlay}>
           {/* Dark background overlay - tap to dismiss */}
-          <TouchableWithoutFeedback onPress={toggleExpanded}>
+          <TouchableWithoutFeedback onPress={() => {
+            if (showOverlayDebug) {
+              console.log('[OVERLAY DEBUG] Background tapped');
+              setOverlayDebugText('Background tapped - closing overlay');
+            }
+            toggleExpanded();
+          }}>
             <View style={styles.expandedBackground} />
           </TouchableWithoutFeedback>
 
@@ -358,15 +378,6 @@ export default function ReferenceGallery({
               style={styles.expandedImage}
               resizeMode="contain"
             />
-
-            {/* Close button as backup */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={toggleExpanded}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
 
             {/* Swipe indicator - moved from thumbnail */}
             {state.references.length > 1 && (
@@ -382,6 +393,51 @@ export default function ReferenceGallery({
               </Text>
             </View>
           </Animated.View>
+
+          {/* Close button - Large centered test version */}
+          {showOverlayDebug ? (
+            <TouchableOpacity
+              style={styles.testCloseButton}
+              onPressIn={() => {
+                console.log('[OVERLAY DEBUG] ✅ X button PRESS IN detected!');
+                setXButtonStatus('PRESSING...');
+                setOverlayDebugText('X button PRESS IN detected!');
+              }}
+              onPressOut={() => {
+                console.log('[OVERLAY DEBUG] ✅ X button PRESS OUT detected!');
+                setXButtonStatus('PRESSED!');
+              }}
+              onPress={() => {
+                console.log('[OVERLAY DEBUG] ✅ X button onPress fired!');
+                setOverlayDebugText('X button onPress - closing overlay');
+                setXButtonStatus('CLOSING...');
+                toggleExpanded();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.testCloseButtonText}>TAP TO CLOSE</Text>
+              <Text style={styles.testCloseButtonStatus}>{xButtonStatus}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                toggleExpanded();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* DEBUG: Overlay interaction logging - only shown if overlay debug enabled */}
+          {showOverlayDebug && (
+            <View style={styles.overlayDebugBox}>
+              <Text style={styles.overlayDebugTitle}>OVERLAY DEBUG MODE</Text>
+              <Text style={styles.overlayDebugText}>{overlayDebugText}</Text>
+              <Text style={styles.overlayDebugHint}>Check console for detailed logs</Text>
+            </View>
+          )}
         </View>
       )}
     </>
@@ -565,13 +621,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#fff',
-    zIndex: 10,
+    zIndex: 99999, // Must be higher than image container to receive touches
+    elevation: 99999, // Android elevation
   },
   closeButtonText: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     lineHeight: 22,
+  },
+  testCloseButton: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -50 }],
+    backgroundColor: '#FF0000',
+    width: 200,
+    height: 100,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFF00',
+    zIndex: 99999,
+    elevation: 99999,
+  },
+  testCloseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  testCloseButtonStatus: {
+    color: '#FFFF00',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   expandedCounter: {
     position: 'absolute',
@@ -603,5 +687,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  overlayDebugBox: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 0, 0, 0.9)',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 3,
+    borderColor: '#fff',
+    zIndex: 10000,
+  },
+  overlayDebugTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  overlayDebugText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 6,
+    fontFamily: 'monospace',
+  },
+  overlayDebugHint: {
+    color: '#ffcccc',
+    fontSize: 11,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

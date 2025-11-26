@@ -81,6 +81,20 @@ export default function DevControlPanel({ visible, onClose }: DevControlPanelPro
                 <Text style={styles.description}>Show rule of thirds grid</Text>
               </View>
             </TouchableOpacity>
+
+            {/* Overlay Debug Mode */}
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => toggleSetting('showOverlayDebug')}
+            >
+              <View style={[styles.checkbox, settings.showOverlayDebug && styles.checkboxChecked]}>
+                {settings.showOverlayDebug && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <View style={styles.labelContainer}>
+                <Text style={styles.label}>Overlay Debug Mode</Text>
+                <Text style={styles.description}>Debug overlay interactions & X button</Text>
+              </View>
+            </TouchableOpacity>
           </ScrollView>
 
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
