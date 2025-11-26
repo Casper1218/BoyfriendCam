@@ -431,3 +431,19 @@ interface ReferenceGalleryProps {
 - **Created /onboard command**: Session context loading for future Claude Code sessions
 - **Status**: Phases 5-6 complete and verified on device, X button now works correctly
 - **Key Learning**: PanResponder capture phase blocks all descendant touch events - use `onStartShouldSetPanResponderCapture: false` and `onPanResponderTerminationRequest: true` to allow child components like buttons to respond
+
+### 2025-11-26 14:50 - Feature 1 Complete & Feature 2 Planning
+- **Feature 1 Status Update**: Reorganized FEATURE_1.md to reflect core development complete (Phases 1-6 done)
+  - Moved all testing and polish tasks to "Future Testing & Polish" section
+  - Added "Potential Sub-Features" section with enhancement ideas
+  - Clarified that project focuses on functionality over completeness for now
+- **Global DEV Button**: Moved development control panel button to root layout for app-wide accessibility
+  - Relocated from app/index.tsx to app/_layout.tsx for persistence across all screens
+  - Now accessible on scenario selection, location selection, and camera screens
+  - Maintains bottom-left position with z-index 9999 for consistent visibility
+- **Feature 2 Scoping**: Created FEATURE_2.md draft for Live Instruction System
+  - Comprehensive scoping document with open questions for PM and user research
+  - Outlined Phase 2A (rule-based) vs Phase 2B (ML-powered) implementation approaches
+  - Documented decision dependencies on Feature 1 user testing results
+  - Clear draft status markers throughout document
+- **Decisions**: Prioritize functional development over comprehensive testing; make dev tools accessible everywhere; formalize Feature 2 planning before implementation
