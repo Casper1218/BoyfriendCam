@@ -466,3 +466,24 @@ Same tuner UI, but target values generated from learned compositional principles
   - Documented decision dependencies on Feature 1 user testing results
   - Clear draft status markers throughout document
 - **Decisions**: Prioritize functional development over comprehensive testing; make dev tools accessible everywhere; formalize Feature 2 planning before implementation
+
+### 2025-11-26 15:10 - Feature 2 Detailed Specification: Tuner Interface Approach
+- **Feature 2 Major Update**: Replaced exploratory draft with concrete tuner-style interface specification
+  - New approach: Visual feedback system like music tuner (red/yellow/green zones)
+  - 4-parameter system: Distance, Tilt, Height, Horizontal position
+  - Continuous real-time feedback instead of discrete text instructions
+- **FEATURE_2.md**: Comprehensive specification document with Phase 1 (photo recreation) and Phase 2 (general guidance)
+  - Phase 1: Recreate ANY reference photo (database or user-uploaded) using tuner feedback
+  - Phase 2: Generate target values from learned composition principles (RAG/ML approach)
+  - Single-face portraits only for MVP, no ML required for Phase 1
+- **FEATURE_2_PHASE_1.md**: Detailed 10-phase implementation checklist
+  - Reference photo processing pipeline with caching
+  - TunerDisplay component with zone visualization
+  - Live camera analysis and metric comparison
+  - User upload support with validation
+  - Complete technical specs: threshold values, performance targets, component architecture
+- **Documentation Updates**: Updated README.md and CLAUDE.md to reflect new tuner approach
+  - Marked Feature 1 as complete in all documentation
+  - Updated roadmap with Feature 2 Phase 1 as next priority (3-4 weeks)
+  - Replaced old text-instruction concept with tuner interface throughout
+- **Key Decision**: Tuner interface provides better UX than text instructions - visual/continuous feedback more intuitive than verbal/discrete commands
