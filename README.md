@@ -131,81 +131,107 @@ Methods:
 
 ---
 
-### Feature 2: Live Instruction System [NEXT PRIORITY]
+### Feature 2: Tuner-Style Guidance System [IN DEVELOPMENT]
 
-**Purpose:** The killer feature - provide GPS-like real-time guidance for better photos.
+**Purpose:** Transform passive reference viewing into active guidance through continuous visual feedback.
 
-#### Phase 2A: Rule-Based Instructions [Build This First]
+**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_PHASE_1.md` for detailed implementation checklist.
+
+#### Phase 1: Photo Recreation with Tuner Interface
+
+**Core Concept:**
+Like a music tuner - visual feedback shows how close the live camera view matches a reference photo. Users adjust their position until all parameters are in the "green zone."
+
+**Four-Parameter Tuner System:**
+
+1. **Distance** - Face size relative to frame
+   - 🔴 Too close/far → 🟡 Getting there → 🟢 Perfect match
+
+2. **Tilt** - Phone angle (forward/backward)
+   - Measured by: Device orientation sensors + face angle
+   - 🔴 Wrong angle → 🟡 Close → 🟢 Correct
+
+3. **Height** - Vertical phone position
+   - Measured by: Face Y-position in frame
+   - 🔴 Too high/low → 🟡 Almost → 🟢 Right height
+
+4. **Horizontal** - Left/right positioning
+   - Measured by: Face X-position in frame
+   - 🔴 Off-center → 🟡 Nearly centered → 🟢 Centered
 
 **User Experience:**
-- Instructions appear as text overlay (top of screen, semi-transparent background)
-- Updates in real-time as user moves phone/subject moves
-- Color-coded: Red (critical), Yellow (improvement needed), Green (good)
-- Optional voice mode: Text-to-speech for hands-free guidance
-- Instructions prioritized: only show most important guidance (max 2 at once)
+- All 4 tuners visible simultaneously
+- Continuous real-time feedback (500ms debounce to prevent flickering)
+- Works with database photos OR user-uploaded references
+- Single-face portraits only (MVP constraint)
+- No quality judgment - user's choice is the target
 
-**Instruction Categories:**
+**Technical Components:**
 
-1. **Device Orientation**
-   - Detect: expo-sensors accelerometer/gyroscope
-   - Instructions: "Level your phone", "Rotate clockwise", "Hold phone steady"
-
-2. **Composition (Rule of Thirds)**
-   - Detect: Face/body detection (expo-camera face detection API)
-   - Instructions: "Center the face higher", "Too much headroom", "Subject too far left/right"
-
-3. **Distance/Framing**
-   - Detect: Face size relative to frame
-   - Instructions: "Step back 2 feet", "Move closer", "Good distance"
-
-4. **Lighting Analysis**
-   - Detect: Frame brightness, contrast, histogram
-   - Instructions: "Subject in shadow - adjust position", "Too bright - avoid direct sunlight"
-
-5. **Basic Pose Guidance**
-   - Instructions: "Subject not centered", "Include more/less background"
-
-**Technical Specifications:**
-
-Component: `LiveInstructions.tsx`
+Component: `TunerDisplay.tsx`
 ```typescript
 Props:
-- cameraRef: ref           // Camera component reference
-- scenario: string         // Current scenario type
-- referencePhoto: image    // Optional - for comparison mode
+- referenceMetrics: object  // Target values from reference photo
+- liveMetrics: object       // Current camera frame metrics
+- thresholds: object        // Zone boundaries (red/yellow/green)
 
 State:
-- activeInstructions: array   // Current instruction objects
-- analysisData: object        // Latest frame analysis results
-- instructionPriority: array  // Ordered by importance
+- zoneStates: object        // Current zone for each parameter
+- deviation: object         // Numeric deviation from target
 
 Methods:
-- analyzeFrame()              // Process camera frame (throttled to 10 FPS)
-- generateInstructions()      // Create instruction objects from analysis
-- prioritizeInstructions()    // Filter to top 2 most important
-- speakInstruction()          // Optional TTS for voice mode
+- updateZones()             // Calculate zones based on live metrics
+- renderTuner()             // Render single parameter tuner
+```
+
+Utilities:
+```typescript
+// utils/referencePhotoAnalysis.ts
+- extractFaceMetrics()      // Get metrics from reference photo
+- cacheMetrics()            // Store computed metrics
+
+// utils/liveFrameAnalysis.ts
+- detectFace()              // Real-time face detection
+- extractLiveMetrics()      // Get metrics from live frame
+- throttleAnalysis()        // Limit to 10 FPS
+
+// utils/metricComparison.ts
+- compareMetrics()          // Calculate deviation
+- mapToZone()               // Determine red/yellow/green zone
 ```
 
 **Performance Requirements:**
-- Frame analysis: Max 10 FPS (analyze every 100ms)
-- Instruction updates: Debounce 500ms (avoid flickering)
-- Face detection: Use expo-camera built-in
-- Maintain 30fps camera preview
+- Camera preview: 30 FPS (non-negotiable)
+- Face detection: 10 FPS (every 100ms)
+- Tuner updates: 500ms debounce minimum
+- Reference metric extraction: <200ms
+- No ML models required (Phase 1)
 
-#### Phase 2B: ML-Powered Guidance [Long-term]
+**Acceptance Criteria:**
+- [ ] Users can recreate reference photos by following tuner feedback
+- [ ] All 4 parameters reach green zone when positioned correctly
+- [ ] Works with database and user-uploaded references
+- [ ] Camera maintains 30 FPS with tuner active
+- [ ] Tuner interface intuitive without extensive training
 
-**Additional Capabilities:**
-- Reference comparison mode
-- Pose matching using TensorFlow Lite PoseNet or MediaPipe
-- Advanced composition scoring
-- Natural language processing for conversational instructions
+#### Phase 2: General Composition Guidance [FUTURE]
 
-**Technical Requirements:**
-- TensorFlow Lite or Core ML integration
-- On-device model inference (privacy + speed)
-- Pose detection models (~10MB)
-- Face landmark detection
-- Background segmentation
+**Core Concept:**
+Same tuner interface, but target values generated from learned compositional principles instead of specific reference photo.
+
+**User Flow:**
+1. User selects scenario: "Full Body + Restaurant"
+2. NO specific reference photo selected
+3. Tuner shows target values based on learned composition rules
+4. Same red/yellow/green feedback as Phase 1
+
+**Technical Approach (Exploratory):**
+- Pre-trained aesthetic models (e.g., NIMA)
+- RAG system for scenario-specific compositional rules
+- Hybrid: Learned model + RAG retrieval + hand-crafted fallbacks
+- Still portrait-focused, same 4 parameters, same UI
+
+**Status:** Research phase, timeline TBD based on Phase 1 success
 
 ---
 
@@ -230,47 +256,41 @@ Methods:
 
 ## Development Roadmap
 
-### Phase 1: Reference Gallery [CURRENT]
-**Timeline:** Now → Saturday testing
+### Phase 1: Reference Gallery [✅ COMPLETE]
+**Status:** Core development complete
 - [x] Project structure and navigation
 - [x] Camera screen with basic functionality
 - [x] Scenario and location selection
-- [x] Organize 85 reference photos into subdirectories
-- [ ] Build ReferenceGallery component
-- [ ] Implement swipe gestures
-- [ ] Add grid overlay
-- [ ] Test with real subjects Saturday
-- [ ] Document learnings: What instructions would have helped?
+- [x] Organize 135 reference photos into subdirectories
+- [x] Build ReferenceGallery component with swipe gestures
+- [x] Tap-to-expand functionality
+- [x] Performance optimized (30 FPS camera preview)
+- [ ] User testing with real subjects (scheduled)
+- [ ] Document learnings for Feature 2
 
-### Phase 2A: Rule-Based Instructions [NEXT - 2 weeks]
-**Timeline:** Post-testing → 2 weeks
-- [ ] Implement LiveInstructions component
-- [ ] Build compositionAnalysis utilities
-- [ ] Device orientation detection
-- [ ] Rule of thirds analysis
-- [ ] Distance estimation (face size based)
-- [ ] Basic lighting analysis
-- [ ] Instruction priority system
-- [ ] UI for instruction display
+### Feature 2 Phase 1: Tuner Interface [NEXT - 3-4 weeks]
+**Timeline:** In development
+**See:** `FEATURE_2_PHASE_1.md` for complete implementation checklist
+- [ ] Reference photo processing pipeline
+- [ ] Extract face metrics from reference photos
+- [ ] Build TunerDisplay component (4-parameter interface)
+- [ ] Live camera face detection and metric extraction
+- [ ] Metric comparison and zone calculation (red/yellow/green)
+- [ ] Camera integration with mode toggle
+- [ ] User upload support with validation
+- [ ] Edge case handling and error states
 - [ ] Performance optimization (maintain 30fps)
-- [ ] User testing: Are instructions helpful?
+- [ ] User testing: Validate tuner interface effectiveness
 
-### Phase 3: Overlay Experiment [QUICK]
-**Timeline:** 2-3 hours
-- [ ] Build TranslucentOverlay component
-- [ ] Implement opacity controls
-- [ ] Quick user test
-- [ ] Decision: Keep or kill
-
-### Phase 2B: ML-Powered Guidance [LONG-TERM]
-**Timeline:** 1-2 months
-- [ ] Research TensorFlow Lite integration
-- [ ] Implement reference photo analysis
-- [ ] Build pose detection
-- [ ] Reference comparison system
-- [ ] Advanced composition scoring
-- [ ] Natural language instruction generation
-- [ ] Voice instruction mode
+### Feature 2 Phase 2: General Composition Guidance [RESEARCH]
+**Status:** Exploratory, timeline TBD
+**Trigger:** Based on Phase 1 success and user demand
+- [ ] Research aesthetic quality models (NIMA, alternatives)
+- [ ] Evaluate RAG approaches for compositional rules
+- [ ] Prototype target generation from scenario types
+- [ ] Integrate learned models with Phase 1 tuner UI
+- [ ] Validate generated targets lead to good photos
+- [ ] User testing: Phase 2 vs Phase 1 comparison
 
 ---
 

@@ -1,340 +1,563 @@
 # Feature 2: Live Instruction System
 
-> **⚠️ DRAFT - SCOPING PHASE**
-> This document is a work-in-progress. Scope, priorities, and implementation approach are still being defined through PM discussions and user research from Feature 1 testing.
-
-**Status**: 📋 Planning / Scoping
-**Dependencies**: Feature 1 user testing results
-**Target Timeline**: TBD (Post Feature 1 validation)
+**Status**: Phase 1 in Development
+**Last Updated**: 2025-11-26
 
 ---
 
-## Objective
+## Overview
 
-Provide real-time, GPS-like guidance that makes taking great photos effortless. Transform the app from a reference viewer into an active photography assistant.
+Transform the app from a passive reference viewer into an active photography assistant through real-time visual guidance. Feature 2 uses a "tuner-style" interface to guide photographers toward recreating reference photos or achieving optimal composition.
 
 ---
 
 ## Core Concept
 
-**Current Problem (Feature 1):**
-User has reference photo visible but still struggles to match it. Verbal instructions from subject are unclear. Trial-and-error takes many attempts.
+**Current Problem (Feature 1):**  
+User has reference photo visible but still struggles to match it. No clear feedback on how far off they are or what specific adjustments to make. Trial-and-error takes many attempts.
 
-**Feature 2 Solution:**
-App analyzes live camera feed in real-time and gives specific, actionable instructions:
-- "Step back 2 feet"
-- "Tilt phone 10° left"
-- "Raise phone higher"
-- "Center subject more"
+**Feature 2 Solution:**  
+Continuous visual feedback (like a music tuner) showing how close the live camera view matches the target:
+- Distance indicator: 🔴 Too close → 🟡 Getting there → 🟢 Perfect match
+- Tilt indicator: 🟢 Correct angle
+- Height indicator: 🟡 Raise phone slightly  
+- Horizontal positioning: 🔴 Move left
 
-**Key Principle:** *Effortless over Educational* - Don't teach photography theory, just guide users to the right shot in the moment.
+**Key Principle:** *Visual Feedback over Text Instructions* - Show users exactly how close they are to the target, let them self-correct intuitively.
 
 ---
 
 ## Design Principles
 
-1. **Specific > Vague**: "Step back 2 feet" not "adjust distance"
-2. **Prioritized > Complete**: Show most important guidance only, not everything wrong
-3. **Fast > Perfect**: Approximate guidance quickly rather than perfect analysis slowly
-4. **Clear > Technical**: "Too much headroom" not "subject violates rule of thirds upper bound"
+1. **Visual > Verbal**: Show proximity to target through tuner interface, not text instructions
+2. **Continuous > Discrete**: Real-time feedback as user adjusts, not step-by-step commands
+3. **Simple > Precise**: Clear red/yellow/green zones, not technical measurements shown to user
+4. **Normalized > Absolute**: All parameters use consistent sensitivity thresholds, even if underlying metrics differ
+5. **Forgiving > Strict**: User chooses reference photo, system guides toward it without judging quality
 
 ---
 
-## Scope Questions (Awaiting PM + User Research)
+---
 
-> **Note:** These decisions will be informed by Feature 1 user testing. What specific instructions did users need most?
+## Phase 1: Photo Recreation with Tuner Interface
 
-### **Instruction Types - What Should the App Guide?**
+**Status:** In Development  
+**Target:** MVP for user testing
 
-**Category: Camera Movement**
-- [ ] Phone tilt corrections? ("Tilt phone 10° left", "Level your phone")
-- [ ] Phone height adjustments? ("Raise phone 6 inches", "Lower phone slightly")
-- [ ] Phone horizontal movement? ("Move camera right")
+### Objective
 
-**Category: Photographer Movement**
-- [ ] Distance instructions? ("Step back 2 feet", "Move closer")
-- [ ] Horizontal positioning? ("Move left a bit", "Shift right")
-
-**Category: Subject Positioning**
-- [ ] Subject framing in viewfinder? ("Center subject more", "Subject too far left")
-- [ ] Subject body pose? ("Have them turn shoulders", "Ask them to lean forward")
-  - *Note: Requires ML models - more complex implementation*
-
-**Category: Environment**
-- [ ] Lighting feedback? ("Too dark - move to brighter area", "Subject in shadow")
-- [ ] Background guidance? ("Busy background - reposition")
-
-**Decision Needed:** Which instruction types are must-have for MVP vs nice-to-have for v2?
+Enable users to recreate ANY reference photo (database or user-uploaded) through continuous visual feedback. No judgment on photo quality - if user chooses it as reference, guide them to match it.
 
 ---
 
-### **Reference Source - What to Optimize Against?**
+### Scope Definition
 
-**Option A: Category Reference Photos (Current Approach)**
-- User selects scenario + location → app loads curated references
-- App compares live feed to selected reference photo
-- Guides user to match composition, framing, distance
-- **Pros:** Already have 135 curated photos, clear target
-- **Cons:** Limited to pre-defined scenarios
+**Reference Source:**
+- Database photos (curated collection)
+- User-uploaded photos (validated for face detection only)
+- NO difference in processing - same general system for both
 
-**Option B: User-Uploaded Reference Photos**
-- User uploads any photo they want to recreate
-- App analyzes it and guides photographer to match
-- **Pros:** Unlimited scenarios, highly personalized
-- **Cons:** More complex analysis, reference quality varies
-- **Use Case:** Recreating milestone photos, matching specific aesthetic
+**Supported Photo Types:**
+- Single-face portraits ONLY (MVP constraint)
+- Frontal or near-frontal faces (face detection requirement)
+- Defer: Landscapes, objects, groups, side profiles → Phase 2 or beyond
 
-**Option C: No Reference - General Guidance**
-- App uses composition rules without comparing to specific photo
-- Provides guidance based on photography best practices (rule of thirds, framing, etc.)
-- **Pros:** Works for any scenario, no reference needed
-- **Cons:** No clear target, harder to know when "done"
-
-**Decision Needed:** Which mode(s) to build? Priority order? Can we combine approaches?
+**Optimization Target:**
+- Extract measurable metrics from reference photo (face size, position, angle)
+- Guide live camera view to match those metrics
+- No judgment on whether reference is "good" - user's choice is target
 
 ---
 
-### **User Experience Design**
+### Tuner Interface Design
 
-> **Pending:** User testing feedback on what makes instructions helpful vs overwhelming
+**Core Concept:** Like a music tuner - visual feedback shows proximity to target state.
 
-**Instruction Display:**
-- **Count:** Show 1 instruction? 2 instructions? All relevant instructions?
-- **Position:** Top of screen? Bottom? Side overlay? Corner?
-- **Color Coding:** Red (critical) / Yellow (improvement) / Green (good)?
-  - Or single color for simplicity?
-- **Positive Feedback:** Show confirmations like "Perfect distance!" when things are right?
+**Four Parameters Tracked:**
 
-**Instruction Style:**
-- **Direct:** "Step back 2 feet"
-- **Friendly:** "Try stepping back a bit!"
-- **Explanatory:** "Subject is too close for this framing. Step back 2 feet."
+1. **Distance** - How close/far photographer is from subject
+   - Measured by: Face size relative to frame
+   - Feedback: 🔴 Too close/far → 🟡 Getting there → 🟢 Perfect match
 
-**Specificity:**
-- **Precise measurements:** "Step back 2.5 feet", "Tilt 12° left"
-- **Relative guidance:** "Step back a bit", "Tilt slightly left"
-- **Hybrid:** Specific for some (distance), relative for others (framing)
+2. **Tilt** - Phone angle (forward/backward)
+   - Measured by: Device orientation sensors + face angle
+   - Feedback: 🔴 Wrong angle → 🟡 Close → 🟢 Correct
 
-**Voice Mode:**
-- Text-to-speech option for hands-free operation?
-- Auto-speak most important instruction?
-- Tap to hear instruction again?
+3. **Height** - Vertical phone position  
+   - Measured by: Face Y-position in frame
+   - Feedback: 🔴 Too high/low → 🟡 Almost → 🟢 Right height
 
-**Decision Needed:** What UX approach best fits your users and brand? Test with prototypes?
+4. **Horizontal** - Left/right positioning
+   - Measured by: Face X-position in frame
+   - Feedback: 🔴 Off-center → 🟡 Nearly centered → 🟢 Centered
 
----
+**Visual Representation (Conceptual):**
+```
+Distance:     🔴 ←——•————→ (Too close, step back)
+Tilt:         🟢 ←——————•→ (Perfect angle)
+Height:       🟡 ←———•———→ (Slightly low, raise a bit)
+Horizontal:   🟢 ←——————•→ (Centered)
+```
 
-## Implementation Approaches
+**Feedback Zones:**
+- **Red Zone:** Significantly off target (>threshold)
+- **Yellow Zone:** Getting close (within threshold but not perfect)
+- **Green Zone:** Target achieved (within tolerance)
 
-### **Phase 2A: Rule-Based Instructions** (Recommended MVP)
-*Foundation - Buildable with current technology, faster to market*
+**Zone Thresholds:**
+- Normalized across all parameters for consistency
+- Different absolute ranges per parameter (e.g., tilt more sensitive than distance)
+- Exact values TBD through testing
 
-**How it works:**
-- Detect measurable features (face position, face size, phone angle)
-- Apply mathematical rules ("if face takes up <30% of frame → too far")
-- Generate instructions from rule violations
-
-**What's possible:**
-- Distance estimation (based on face/body size relative to frame)
-- Phone orientation (built-in accelerometer/gyroscope sensors)
-- Basic composition (rule of thirds, centering, headroom)
-- Face positioning in frame
-- Basic lighting (brightness/contrast analysis)
-
-**Limitations:**
-- Only works for frontal faces (expo-camera face detection)
-- Can't understand body pose or multiple people
-- No scene/context understanding
-- Approximate, not precise
-
-**Required Dependencies:**
-- expo-sensors (device orientation)
-- expo-camera face detection API
-- Basic image analysis utilities
-
-**Estimated Timeline:** 2-3 weeks for core functionality
-
-**Open Technical Questions:**
-- How reliable is face detection in various lighting?
-- What's the fallback when face detection fails?
-- Can we maintain 30fps camera preview with analysis running?
+**Display Strategy:**
+- Show all 4 tuners simultaneously
+- User sees holistic view of all adjustments needed
+- No prioritization - let user decide what to adjust first
+- UX refinement based on testing feedback
 
 ---
 
-### **Phase 2B: ML-Powered Instructions** (Future Enhancement)
-*Advanced - Requires ML models and additional optimization*
+### Technical Approach
 
-**How it works:**
-- Run computer vision models on camera frames
-- Detect poses, landmarks, scene elements
-- Compare to reference using learned features
-- Generate nuanced instructions
+**Reference Photo Processing:**
 
-**What ML adds:**
-- Body pose detection → "Turn shoulders slightly right"
-- Multiple person handling → "Step closer to bring both in frame"
-- Scene understanding → "Move subject away from cluttered background"
-- Aesthetic scoring → "Composition looks awkward - try a lower angle"
-- Reference photo analysis → Extract composition from any uploaded photo
+1. **Target Extraction:**
+   - When photo selected: Check if metrics already computed
+   - If not cached: Run face detection + metric extraction
+   - Cache results: Database photos pre-computed, user uploads computed on first selection
+   
+2. **Metrics Extracted:**
+   - Face bounding box (x, y, width, height)
+   - Face size ratio (face height / frame height)
+   - Face center position (normalized x, y coordinates)
+   - Approximate device tilt (if derivable from face angle)
 
-**Requirements:**
-- TensorFlow Lite or Core ML integration
-- Pre-trained or fine-tuned models (~5-20MB app size increase)
-- Additional processing time (~50-100ms per frame)
-- Battery optimization considerations
-- On-device inference (privacy requirement)
+3. **No Quality Judgment:**
+   - Accept any photo with detectable face
+   - User's choice = target, regardless of composition quality
+   - Quality assessment is Phase 2 capability
 
-**Estimated Timeline:** 2-4 weeks after Phase 2A, depending on scope
+**Live Camera Analysis:**
 
-**Open Technical Questions:**
-- Which ML framework? (TensorFlow Lite, Core ML, MediaPipe)
-- Which models? (PoseNet, MobileNet, custom trained?)
-- Can we maintain performance with ML inference?
-- How do we handle model updates/versioning?
+1. **Real-time Detection:**
+   - Use expo-camera built-in face detection
+   - Extract same metrics from live frame
+   - Update at 10 FPS (throttled for performance)
+
+2. **Comparison:**
+   - Calculate deviation for each parameter
+   - Map deviation to zone (red/yellow/green)
+   - Update tuner display with 500ms debounce (prevent flickering)
+
+3. **Fallback Handling:**
+   - If face detection fails: Show "Face not detected" message
+   - Disable tuner feedback until face visible
+   - No approximations - Phase 1 requires face detection
+
+**Performance Requirements:**
+- Camera preview: 30 FPS (non-negotiable)
+- Face detection: 10 FPS (every 100ms)
+- Tuner update: 500ms debounce minimum
+- Metric extraction from reference: <200ms
 
 ---
 
-## Success Metrics
+### User Upload Validation
 
-### **Functional Success:**
-- [ ] Instructions update in real-time without lag (<500ms debounce)
-- [ ] Camera preview maintains smooth performance (30 FPS minimum)
-- [ ] Instructions are accurate (lead to measurably better photos)
-- [ ] Instruction priority makes sense (most important shown first)
-- [ ] Feature works in 90%+ of real-world scenarios
+**Minimum Requirements:**
+- Photo must have detectable face (single face)
+- Face must be frontal or near-frontal (face detection API limitation)
+- No other quality checks (resolution, blur, composition)
 
-### **User Experience Success:**
-- [ ] Photos taken with instructions are noticeably better than Feature 1 alone
-- [ ] Users can follow instructions without confusion
-- [ ] Takes fewer attempts to get a good shot (quantifiable reduction)
-- [ ] Instructions feel helpful, not annoying or overwhelming
-- [ ] Users feel more confident while shooting
+**User Communication:**
+- If upload fails validation: "Could not detect face in photo. Please choose a portrait photo with clear frontal face."
+- No warnings about photo quality - user's choice is respected
 
-### **Product Success:**
-- [ ] Feature differentiates app from standard camera apps
-- [ ] Users prefer this over just viewing reference photos
-- [ ] Net Promoter Score increases vs Feature 1
-- [ ] Users share/recommend based on this feature
-- [ ] Retention increases (users come back for this feature)
+**Development Approach:**
+- Start with database photos only (controlled testing)
+- Architecture supports user uploads from day 1
+- Enable user uploads after database testing validates system
 
-### **Measurement Approach:**
-- A/B testing: With instructions vs without
-- Time-to-good-photo: Number of shots needed to get acceptable result
-- User surveys: Helpfulness rating (1-5), confusion points, feature requests
-- Photo quality assessment: Composition improvement (measurable metrics)
-- Session length: Do users spend more/less time per photo?
+---
+
+### Deferred to Later Phases
+
+**Not Included in Phase 1:**
+- Lighting guidance
+- Background analysis
+- Body pose instructions
+- Voice/audio feedback
+- Multiple faces or group photos
+- Non-portrait photos (landscapes, objects)
+- Quality assessment of reference photos
+- Compositional suggestions beyond matching reference
+
+---
+
+### Success Metrics
+
+**Functional Success:**
+- Tuner feedback updates smoothly without lag
+- Zone transitions (red→yellow→green) feel responsive and accurate
+- Users can achieve green state across all 4 parameters
+- Face detection works reliably in typical photo conditions
+
+**User Experience Success:**
+- Photos taken with tuner guidance visibly match reference photos
+- Users understand tuner interface without extensive tutorial
+- Time to achieve all-green state is reasonable (<30 seconds of adjustment)
+- Users prefer tuner interface over Feature 1's static reference view
+
+**Validation Approach:**
+- A/B test: Tuner vs static reference gallery
+- Measure: Time to acceptable photo, number of attempts, user preference
+- Photo comparison: How closely do results match reference (objective metrics)
+- User surveys: Ease of use, clarity of feedback, would you use this?
+
+---
+
+## Phase 2: General Composition Guidance
+
+**Status:** Future / Research Phase  
+**Trigger:** Casper's decision after Phase 1 testing + foundation work
+
+### Objective
+
+Enable users to get good photo guidance WITHOUT requiring a specific matching reference photo. System provides composition guidance based on learned photographic principles and scenario context.
+
+---
+
+### Core Concept Difference from Phase 1
+
+**Phase 1:** "Here's a photo, help me recreate it exactly"  
+**Phase 2:** "I want to take a standing full-body shot in a restaurant, help me compose a good photo"
+
+**Key Innovation:** Target values come from model's learned understanding, not from analyzing a specific reference photo.
+
+---
+
+### User Experience (Conceptual)
+
+**User Flow:**
+1. User selects scenario type: "Full Body + Restaurant"
+2. NO specific reference photo selected
+3. Tuner interface still shows (same UI as Phase 1)
+4. Target values generated from learned composition rules for this scenario
+5. User adjusts until all tuners are green
+
+**Example Target Generation:**
+- Scenario: "Full body + Restaurant"
+- Model knowledge: "Good full-body restaurant photos typically have:"
+  - Face at 20% from top (based on thousands of examples)
+  - Subject occupies 70% of frame height
+  - Slight downward tilt (-5°)
+  - Subject centered horizontally
+- These become tuner targets, same interface as Phase 1
+
+---
+
+### Technical Approach (Preliminary)
+
+**Disclaimer:** This is highly exploratory. Exact approach TBD through research.
+
+**Potential Components:**
+
+1. **Pre-trained Aesthetic Models**
+   - Use existing models like NIMA (Neural Image Assessment)
+   - Fine-tune for portrait photography specifically
+   - Model learns "good composition" from large datasets
+
+2. **RAG System for Compositional Rules**
+   - Database of high-quality reference photos per scenario type
+   - Extract common patterns/metrics from each scenario
+   - Retrieve relevant compositional principles when user selects scenario
+
+3. **Hybrid Approach (Most Likely)**
+   - Learned aesthetic model provides general guidance
+   - RAG retrieves scenario-specific best practices
+   - Combine to generate target metrics for tuner
+   - May include some hand-crafted rules as fallback
+
+**Target Metric Generation:**
+```
+Input: Scenario type ("Full Body + Restaurant")
+Process: 
+  1. Query RAG for similar high-quality photos
+  2. Extract average metrics from retrieved photos
+  3. Apply aesthetic model adjustments
+  4. Generate target: {distance: 45%, tilt: -5°, height: 20%, horizontal: 50%}
+Output: Same 4-parameter targets as Phase 1
+```
+
+---
+
+### Scope Constraints
+
+**Still Portrait-Focused:**
+- Phase 2 does NOT expand to landscapes, objects, food photography
+- Focus remains on human portraits (full-body, half-body, close-up)
+- Just removes requirement for specific matching reference photo
+
+**Still Same Tuner UI:**
+- No additional instruction types
+- Same 4 parameters (distance, tilt, height, horizontal)
+- Same red/yellow/green feedback zones
+- Innovation is in target generation, not interface
+
+**Built on Phase 1:**
+- Phase 1 architecture is foundation
+- Phase 2 adds different "target source" module
+- User can still choose Phase 1 mode (specific reference) OR Phase 2 mode (general guidance)
+
+---
+
+### Why Phase 2 is Necessary
+
+**Limitation of Phase 1:**
+- Impossible to provide exact reference photo for every situation
+- Infinite combinations of: poses, locations, lighting, subject characteristics
+- User may want guidance but not have/find perfect reference
+
+**Phase 2 Value:**
+- Handles edge cases and uncommon scenarios
+- Provides "good enough" guidance when specific reference unavailable
+- More flexible, adapts to user's actual situation
+- Still maintains same simple tuner interface users learned in Phase 1
+
+---
+
+### Research Questions
+
+**Before Phase 2 Development:**
+
+1. **Model Selection:**
+   - Which pre-trained models exist for aesthetic quality?
+   - How much fine-tuning needed for portrait-specific scenarios?
+   - Can we use lightweight models for on-device inference?
+
+2. **RAG Architecture:**
+   - What's optimal number of reference photos per scenario?
+   - How to balance variety vs consistency in retrieved examples?
+   - Should RAG include compositional rules text, or just example photos?
+
+3. **Target Generation:**
+   - How to combine model output + RAG results into specific metrics?
+   - How much variability to allow? (Not all "good" photos match exact metrics)
+   - Fallback strategy if model/RAG fails to generate targets?
+
+4. **Validation:**
+   - How to measure if Phase 2 targets are "good"?
+   - User testing: Do Phase 2 results feel helpful or arbitrary?
+   - Comparison: Phase 2 general guidance vs Phase 1 specific matching
+
+---
+
+### Timeline & Development Approach
+
+**Trigger for Starting Phase 2:**
+- Casper's decision based on:
+  - Phase 1 user testing results
+  - Feature requests for scenarios not in database
+  - Strategic product direction
+
+**Parallel Development Possible:**
+- After Phase 1 foundation is stable
+- Merge Phase 1 foundation to main
+- Branch 1: Continue iterating Phase 1 UX
+- Branch 2: Research and build Phase 2 target generation
+- Both use same core tuner architecture
+
+**Research-Heavy Phase:**
+- More unknowns than Phase 1
+- May require experimentation with multiple approaches
+- Expect iterative development, not linear progression
+
+---
+
+### Success Criteria (Tentative)
+
+**Phase 2 is successful if:**
+- Users can get helpful guidance without specific reference photo
+- Generated targets lead to aesthetically pleasing photos
+- Works across variety of portrait scenarios (not just scenarios in database)
+- Guidance doesn't feel arbitrary or confusing
+- Adoption: Users actually choose Phase 2 mode for appropriate situations
+
+**Measurement:**
+- Photo quality assessment (objective metrics + human evaluation)
+- User surveys: Helpfulness, trust in guidance, preference vs Phase 1
+- Usage patterns: When do users choose Phase 2 vs Phase 1?
+
+---
+
+## Overall Success Metrics
+
+### Phase 1 Metrics
+See Phase 1 section above for detailed metrics.
+
+### Phase 2 Metrics  
+See Phase 2 section above for detailed metrics.
+
+### Product-Level Metrics (Both Phases)
+
+**Feature Adoption:**
+- % of users who try tuner interface vs staying with Feature 1
+- Session duration with tuner active
+- Photos taken per session (fewer = more efficient)
+
+**Photo Quality:**
+- Objective metrics: Composition scores, rule-of-thirds compliance
+- Subjective: User satisfaction with results
+- Comparison: Before/after tuner usage
+
+**User Retention:**
+- Return usage of tuner feature
+- Feature perceived value (survey data)
+- Net Promoter Score for app
+
+---
+
+## Development Status & Next Steps
+
+### Phase 1: Ready for Development
+
+**Decisions Made:**
+- ✅ Tuner interface with 4 parameters (distance, tilt, height, horizontal)
+- ✅ 3-zone feedback (red/yellow/green) with normalized thresholds
+- ✅ Show all 4 tuners simultaneously
+- ✅ Single-face portrait scope for MVP
+- ✅ Reference photo processing: lazy computation with caching
+- ✅ Start with database photos, support user uploads
+- ✅ User upload validation: face detection only
+
+**Immediate Next Steps:**
+1. Create FEATURE_2_PHASE_1.md with detailed implementation checklist
+2. Design tuner UI mockups (visual representation of 4-parameter interface)
+3. Implement reference photo metric extraction pipeline
+4. Build tuner display components
+5. Integrate face detection and real-time comparison
+6. Test with database photos
+7. Enable user uploads after validation
+8. User testing with real photographers
+
+**Timeline Estimate:** 3-4 weeks for MVP
+
+---
+
+### Phase 2: Research & Planning Phase
+
+**Not Ready for Development:**
+- Need more research on model selection (NIMA, alternatives)
+- RAG architecture undefined
+- Target generation approach exploratory
+- Success criteria need refinement
+
+**Pre-Development Work Needed:**
+1. Research aesthetic quality models
+2. Evaluate RAG approaches for compositional rules
+3. Prototype target generation from scenario types
+4. Define success metrics for "good" targets
+5. Create detailed Phase 2 technical spec
+
+**Trigger:** Casper's decision after Phase 1 testing
+
+**Potential Timeline:** Start research after Phase 1 foundation stable, development 4-6 weeks (highly uncertain)
 
 ---
 
 ## Risks & Mitigation Strategies
 
-**Risk: Instructions feel annoying rather than helpful**
-- Mitigation: Strict instruction limit (max 2 at once), smart priority system
-- Mitigation: User testing early and often with real scenarios
-- Mitigation: Allow quick disable/enable toggle in dev panel and settings
+### Phase 1 Risks
 
-**Risk: Face detection fails in low light or side angles**
-- Mitigation: Build fallback mode with center-of-frame approximation
-- Mitigation: Clear messaging when detection unavailable ("Turn to face camera")
-- Mitigation: Test in various lighting conditions during development
+**Risk: Face detection fails in common scenarios**
+- **Scenarios:** Low light, side angles, subject turned away, glasses/masks
+- **Mitigation:** Clear error messaging, encourage frontal face positioning
+- **Fallback:** Disable tuner, show "Face not detected - please face camera directly"
+- **Future:** Phase 2 could add non-face-based approximations
 
-**Risk: Instructions update too frequently (flickering/annoying)**
-- Mitigation: Debounce updates (500ms minimum between changes)
-- Mitigation: Smooth transitions between instructions
-- Mitigation: Only update when change is significant (>10% threshold, not every frame)
+**Risk: Tuner interface confusing for users**
+- **Scenarios:** Don't understand zones, ignore feedback, overwhelming with 4 parameters
+- **Mitigation:** User testing early, simple tutorial on first use
+- **Fallback:** A/B test different UI variations (number of tuners shown, visual design)
+- **Iteration:** Refine based on user feedback
 
-**Risk: Performance degrades (camera preview lags)**
-- Mitigation: Throttle analysis to 10 FPS max (analyze every 100ms, not every frame)
-- Mitigation: Profile and optimize any slow code paths
-- Mitigation: Fail gracefully - disable instructions if FPS drops below 25
-- Mitigation: Use native driver animations where possible
+**Risk: Performance degradation with real-time processing**
+- **Scenarios:** Camera preview lags, tuner updates stutter, battery drain
+- **Mitigation:** Throttle analysis to 10 FPS, debounce UI updates to 500ms
+- **Monitoring:** Profile performance on mid-range devices
+- **Optimization:** Fail gracefully if performance drops below threshold
 
-**Risk: Users ignore instructions (too complex, unclear, or too technical)**
-- Mitigation: User testing with real photographers and subjects (not just developers)
-- Mitigation: Iterate on instruction phrasing based on feedback
-- Mitigation: Consider tutorial/first-use explanation or onboarding
-- Mitigation: A/B test different instruction styles
+**Risk: Reference photo quality varies (user uploads)**
+- **Scenarios:** Blurry photos, poor composition, unusual crops
+- **Mitigation:** Accept user's choice without judgment (Phase 1 principle)
+- **Communication:** Set expectation that target is "match this photo" not "take good photo"
+- **Future:** Phase 2 can address quality through learned models
 
-**Risk: MVP scope creep (trying to build everything at once)**
-- Mitigation: Clear must-have vs nice-to-have prioritization before development
-- Mitigation: Build minimal testable version first (Phase 2A only)
-- Mitigation: Add features incrementally based on user feedback, not assumptions
-- Mitigation: Use Feature 1 testing to validate which instructions users need most
-
----
-
-## Open Questions & Required Decisions
-
-> **Action Items:** These questions should be answered before starting development
-
-### **Product Decisions (PM Required):**
-1. ❓ Which instruction types are must-have for MVP? (See scope section)
-2. ❓ Which reference mode is primary? (Category / User-upload / General)
-3. ❓ How many instructions should display simultaneously? (1, 2, or dynamic?)
-4. ❓ What instruction style best fits the brand? (Direct, friendly, or explanatory?)
-5. ❓ Is ML required for MVP, or can we launch with rule-based and add ML later?
-6. ❓ What's the success threshold to proceed from 2A to 2B?
-
-### **User Research Needed (From Feature 1 Testing):**
-1. ❓ What specific instructions would have helped most when matching references?
-2. ❓ What adjustments were hardest to judge? (Distance? Angle? Framing?)
-3. ❓ Do users prefer precise measurements ("2 feet") or relative guidance ("a bit back")?
-4. ❓ Would users actually use voice instructions, or is it too awkward?
-5. ❓ What makes instructions feel helpful vs annoying?
-6. ❓ How many instructions can users process at once without feeling overwhelmed?
-
-### **Technical Unknowns (Requires Prototyping):**
-1. ❓ Can rule-based approach deliver enough value, or is ML required for MVP?
-2. ❓ What's acceptable latency for instruction updates in real-world use?
-3. ❓ How robust is expo-camera face detection across different scenarios?
-4. ❓ What happens when face detection fails? What's the fallback UX?
-5. ❓ How much battery drain is acceptable? What's our baseline?
-6. ❓ Can we analyze frames at 10 FPS and maintain 30 FPS camera preview?
+**Risk: Normalized thresholds don't feel right**
+- **Scenarios:** Some parameters too sensitive, others not sensitive enough
+- **Mitigation:** Make thresholds configurable, test multiple settings
+- **Iteration:** Adjust based on user testing feedback
+- **Flexibility:** Per-parameter tuning if needed
 
 ---
 
-## Dependencies & Blockers
+### Phase 2 Risks
 
-**Blocked By:**
-- Feature 1 user testing completion (need learnings about instruction needs)
-- PM decisions on scope and priority (see open questions above)
-- Technical feasibility spike (face detection reliability, performance testing)
+**Risk: Model-generated targets feel arbitrary**
+- **Scenarios:** Users don't understand why target is where it is, don't trust guidance
+- **Mitigation:** Extensive validation that targets align with good composition
+- **Fallback:** Allow manual adjustment of targets if user disagrees
+- **Communication:** Explain that targets based on thousands of example photos
 
-**Depends On:**
-- expo-camera v15+ (face detection API)
-- expo-sensors v15+ (device orientation)
-- Stable camera preview performance from Feature 1
+**Risk: RAG retrieval produces inconsistent targets**
+- **Scenarios:** Different similar photos have very different metrics
+- **Mitigation:** Use averaging/statistical approaches, not single example
+- **Testing:** Validate consistency across multiple retrievals for same scenario
+- **Refinement:** Manual curation of RAG database for consistency
 
-**Nice-to-Have (Not Blockers):**
-- ML framework integration (for Phase 2B)
-- Voice synthesis library (for voice mode)
-- Advanced image processing utilities
+**Risk: Phase 2 research takes longer than expected**
+- **Scenarios:** Model selection challenging, integration complex, results poor
+- **Mitigation:** Parallel development with Phase 1 iteration
+- **Flexibility:** Phase 1 can continue improving while Phase 2 researched
+- **Checkpoint:** Re-evaluate Phase 2 necessity after Phase 1 success
+
+**Risk: Users don't need/want Phase 2**
+- **Scenarios:** Phase 1 database coverage sufficient, users prefer specific references
+- **Mitigation:** Validate demand through Phase 1 user feedback
+- **Decision:** Don't build Phase 2 if Phase 1 solves the problem
+- **Alternative:** Expand Phase 1 database instead
 
 ---
 
-## Next Steps
+## Key Principles to Remember
 
-1. ✅ **Complete Feature 1 testing** - Gather specific learnings about needed instructions
-2. ⏳ **Analyze Feature 1 feedback** - What did users struggle with most?
-3. ⏳ **Finalize PM decisions** - Use decision list to lock MVP scope
-4. ⏳ **Technical feasibility spike** - Test face detection reliability, performance
-5. ⏳ **Create detailed technical spec** - Based on chosen scope and approach
-6. ⏳ **Build Phase 2A MVP** - Rule-based instructions for core use cases
-7. ⏳ **User test Phase 2A** - Validate approach before investing in ML
-8. ⏳ **Decide on Phase 2B** - Add ML selectively based on testing feedback
+**Phase 1 Core Tenets:**
+1. User's choice of reference photo is the target - no quality judgment
+2. Visual feedback (tuner) is more intuitive than text instructions
+3. Single-face portraits only - stay focused on this constraint
+4. Simple is better - 3 zones, 4 parameters, clear feedback
+5. Performance is non-negotiable - 30 FPS camera preview always
+
+**Phase 2 Core Tenets:**
+1. Built on Phase 1 foundation - same UI, different target source
+2. Research-heavy - don't commit to approach without validation
+3. Portrait-focused indefinitely - no scope creep to other photo types
+4. Necessity driven by Phase 1 limitations, not speculation
+5. User needs validate the direction - build if users ask for it
 
 ---
 
 ## Related Documentation
 
-- **README.md** - Overall product vision and feature roadmap
-- **FEATURE_1.md** - Reference gallery (predecessor to this feature)
-- **CLAUDE.md** - Implementation guidelines and performance requirements
-- **Development Journal** - Session notes and decision history
+- **FEATURE_2_PHASE_1.md** - Detailed Phase 1 implementation checklist (to be created)
+- **PM_DECISIONS_RESOLVED.md** - Captured decisions from PM discussions (to be created)
+- **Project.md** - Overall product vision and feature roadmap
+- **FEATURE_1.md** - Reference gallery (predecessor feature)
+- **README.md** - Technical architecture and design principles
 
 ---
 
 **Last Updated:** 2025-11-26
-**Status:** 📋 Draft - Awaiting scope confirmation from PM and Feature 1 user testing results
-**Owner:** TBD
-**Reviewers Needed:** PM, Engineering Lead, Design
+**Phase 1 Status:** Scoping complete, ready for detailed spec
+**Phase 2 Status:** Conceptual, research phase, no development timeline
+

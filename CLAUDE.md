@@ -199,77 +199,93 @@ function MyComponent() {
 
 ## Feature Development Guidelines
 
-### Current Phase: Feature 1 - Reference Photo Gallery
+### Feature 1 - Reference Photo Gallery [✅ COMPLETE]
 
-**Objective:** Provide visual examples without switching apps. Serves as baseline and learning tool for Feature 2.
+**Status:** Core development complete (Phases 1-6)
 
-**Implementation Tasks:**
-1. Build `ReferenceGallery.tsx` component
-2. Load photos from subdirectories based on scenario + location
-3. Implement thumbnail display (bottom-right, 80x120px)
-4. Add swipe gestures for cycling through references
-5. Implement tap-to-expand functionality (50% screen, semi-transparent overlay)
-6. Ensure no performance lag in camera preview (maintain 30fps)
+**Achievements:**
+1. ✅ ReferenceGallery.tsx component with swipe gestures
+2. ✅ Photo loading from subdirectories (135 photos across 12 categories)
+3. ✅ Thumbnail display (100x150px, bottom-right)
+4. ✅ Tap-to-expand functionality with full-screen overlay
+5. ✅ Performance optimized (30fps camera preview maintained)
+6. ✅ Fixed critical issues (closure bug, X button blocking)
 
 **Reference Photo Organization:**
 - Photos stored in: `assets/images/photos/{scenario}-{location}/{number}.jpg`
 - Example: `assets/images/photos/portrait-half-beach/1.jpg`
-- Total: 85 curated reference photos across 11 categories
-- Access via: Dynamically load based on user's scenario and location selection
+- Total: 135 curated reference photos across 12 categories
+- Static asset mapping in `utils/referencePhotos.ts`
 
-**Component Structure:**
+**Component:**
 ```typescript
 // components/ReferenceGallery.tsx
 interface ReferenceGalleryProps {
-  scenario: string;          // 'portrait-full', 'portrait-half', 'close-up'
-  location: string;          // 'outdoors', 'indoors', 'restaurant', 'beach'
+  scenario: string;
+  location: string;
   onReferenceChange?: (index: number) => void;
+  showDebugInfo?: boolean;
 }
-
-// Load references from: require(`@/assets/images/photos/${scenario}-${location}/${number}.jpg`)
 ```
 
-### Next Phase: Feature 2A - Rule-Based Instructions
+**See:** `FEATURE_1.md` for complete development history and testing plan
 
-**Objective:** Provide real-time, GPS-like guidance for better photos.
+---
+
+### Feature 2 - Tuner-Style Guidance System [IN DEVELOPMENT]
+
+**Status:** Phase 1 scoping complete, ready for implementation
+
+**Core Concept:**
+Transform passive reference viewing into active guidance using a "tuner-style" interface (like a music tuner). Visual feedback shows how close the live camera view matches a reference photo through 4 parameters with red/yellow/green zones.
+
+**Phase 1: Photo Recreation with Tuner Interface**
+
+**Four-Parameter System:**
+1. **Distance** - Face size relative to frame
+2. **Tilt** - Phone angle (device orientation + face angle)
+3. **Height** - Vertical phone position (face Y-position)
+4. **Horizontal** - Left/right positioning (face X-position)
 
 **Key Components to Build:**
-1. **LiveInstructions.tsx** - Overlay displaying prioritized instructions
-2. **utils/compositionAnalysis.ts** - Frame analysis and rule-based evaluation
-3. **utils/instructionEngine.ts** - Generate instructions from analysis results
+1. **TunerDisplay.tsx** - Four-parameter tuner UI with zone visualization
+2. **utils/referencePhotoAnalysis.ts** - Extract metrics from reference photos
+3. **utils/liveFrameAnalysis.ts** - Real-time face detection and metric extraction
+4. **utils/metricComparison.ts** - Compare live vs reference, map to zones
 
-**Instruction Categories:**
-1. Device Orientation (expo-sensors)
-2. Composition - Rule of Thirds (expo-camera face detection)
-3. Distance/Framing (face size analysis)
-4. Lighting Quality (brightness/contrast analysis)
-5. Basic Pose Guidance
+**Scope Constraints:**
+- Single-face portraits ONLY (MVP)
+- Works with database photos AND user-uploaded references
+- No quality judgment - user's choice is the target
+- No ML models required for Phase 1
 
 **Performance Requirements:**
 - Camera preview: 30 FPS (non-negotiable)
-- Frame analysis: Max 10 FPS (analyze every 100ms)
-- Instruction updates: Debounce 500ms to avoid flickering
-- Use throttling and requestAnimationFrame for smooth UI
-- Fail gracefully if face detection unavailable
+- Face detection: 10 FPS (every 100ms)
+- Tuner updates: 500ms debounce minimum
+- Reference metric extraction: <200ms
 
-**Instruction Priority System:**
-- Max 2 instructions displayed simultaneously
-- Color-coded: Red (critical), Yellow (improvement), Green (confirmation)
-- Priority order: Critical errors > Improvements > Confirmations
+**Zone Thresholds (Starting Values):**
+- Green: Within tolerance (target ±10% for distance, ±5° for tilt, ±8% for position)
+- Yellow: Getting close (approaching threshold)
+- Red: Significantly off target (>threshold deviation)
 
-### Future Phase: Feature 2B - ML-Powered Guidance
+**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_PHASE_1.md` for detailed implementation checklist
 
-**Technologies to Research:**
-- TensorFlow Lite or Core ML for on-device inference
-- PoseNet or MediaPipe for pose detection
-- Face landmark detection for detailed analysis
-- Background segmentation for framing
+**Phase 2: General Composition Guidance [RESEARCH PHASE]**
 
-**Performance Considerations:**
-- Models add ~10-20MB to app size
-- Requires optimization for real-time on-device processing
-- Battery impact from camera + ML processing
-- All processing must remain on-device (privacy)
+**Concept:**
+Same tuner UI, but target values generated from learned compositional principles instead of specific reference photo.
+
+**Technical Approach (Exploratory):**
+- Pre-trained aesthetic models (NIMA, alternatives)
+- RAG system for scenario-specific compositional rules
+- Hybrid: Learned model + RAG retrieval + hand-crafted fallbacks
+- Still portrait-focused, same 4 parameters, same tuner UI
+
+**Status:** Research phase, timeline TBD based on Phase 1 success
+
+**See:** `FEATURE_2.md` Phase 2 section for detailed exploration
 
 ## Testing Notes
 
@@ -333,17 +349,20 @@ interface ReferenceGalleryProps {
 ### Current Status
 - ✅ Project structure and navigation complete
 - ✅ Scenario and location selection screens complete
-- ✅ Camera screen with basic tips system complete
-- ✅ 85 reference photos organized into subdirectories
-- 🚧 Feature 1 (Reference Gallery) in progress
-- ⏳ Feature 2A (Rule-Based Instructions) next priority
-- ⏳ Feature 2B (ML-Powered Guidance) long-term goal
+- ✅ Camera screen with tips system complete
+- ✅ 135 reference photos organized into subdirectories
+- ✅ Feature 1 (Reference Gallery) core development complete
+- ✅ Development Control Panel (global DEV button)
+- 🚧 Feature 2 Phase 1 (Tuner Interface) scoping complete, ready for implementation
+- ⏳ Feature 2 Phase 2 (General Composition Guidance) research phase
 
 ### Immediate Next Steps
-1. Build ReferenceGallery component with swipe gestures
-2. Add grid overlay to camera view
-3. Test Feature 1 with real subjects
-4. Document learnings for Feature 2 instruction design
+1. Review Feature 2 Phase 1 implementation checklist (FEATURE_2_PHASE_1.md)
+2. Begin Phase 1.1: Reference photo processing pipeline
+3. Build TunerDisplay component with 4-parameter interface
+4. Integrate face detection for live metric extraction
+5. Test tuner interface with database photos
+6. Enable user upload support after validation
 
 ## Additional Context
 
