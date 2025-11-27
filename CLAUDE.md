@@ -487,3 +487,16 @@ Same tuner UI, but target values generated from learned compositional principles
   - Updated roadmap with Feature 2 Phase 1 as next priority (3-4 weeks)
   - Replaced old text-instruction concept with tuner interface throughout
 - **Key Decision**: Tuner interface provides better UX than text instructions - visual/continuous feedback more intuitive than verbal/discrete commands
+
+### 2025-11-26 16:00 - Feature 1 Merged to Main & Feature 2 Branch Created
+- **Merge Complete**: Successfully merged feature/reference-gallery into main branch
+  - Fast-forward merge - all Feature 1 work now in main
+  - Includes: ReferenceGallery component, 135 reference photos, global DEV button, complete Feature 2 documentation
+  - Pushed to remote main branch
+- **New Development Branch**: Created feature/tuner-live-instructions for Feature 2 Phase 1 development
+  - Initial name: feature/feature-2-phase-1
+  - Renamed to: feature/tuner-interface
+  - Final name: feature/tuner-live-instructions (more descriptive of actual feature)
+  - Branch set up with upstream tracking on remote
+- **Project Status**: Clean separation between completed Feature 1 (main) and upcoming Feature 2 development (feature branch)
+- **Ready for Development**: Feature 2 Phase 1 implementation can begin using FEATURE_2_PHASE_1.md as guide
