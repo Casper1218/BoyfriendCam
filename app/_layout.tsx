@@ -12,8 +12,10 @@ export default function RootLayout() {
     <DevProvider>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="scenario" options={{ headerShown: false }} />
         <Stack.Screen name="location" options={{ headerShown: false }} />
         <Stack.Screen name="camera" options={{ headerShown: false }} />
+        <Stack.Screen name="album" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
 

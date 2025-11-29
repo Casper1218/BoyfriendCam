@@ -22,17 +22,23 @@ Transform anyone into a capable photographer through GPS-like real-time instruct
 - TypeScript (strict mode enabled)
 
 **Current Dependencies:**
-- expo-camera (camera access and controls)
+- expo-camera (camera access, controls, and **live face detection**)
+  - Uses ML Kit (Android) and Vision API (iOS) natively
+  - Provides `onFacesDetected` callback for real-time face analysis in live camera
+- expo-face-detector (**static image face detection**)
+  - Same ML Kit/Vision API but for analyzing reference photos
+  - Used to extract face metrics from 135 database photos
+  - Enables tuner target generation from reference images
 - expo-media-library (saving photos)
 - expo-status-bar
 - expo-haptics
 
-**Future Dependencies (Feature 2+):**
-- expo-image-picker (photo syncing)
-- @tensorflow/tfjs / expo-gl (ML-powered analysis)
-- expo-av (voice instructions)
-- expo-sensors (device orientation)
-- react-native-reanimated (smooth animations)
+**Future Dependencies (Stage 2+):**
+- expo-image-picker (user photo uploads)
+- expo-sensors (device orientation for tilt feedback)
+- react-native-reanimated (smooth tuner animations)
+- expo-av (optional voice instructions)
+- TensorFlow.js / ML models (Stage 2 only - composition quality assessment)
 
 ---
 
@@ -135,9 +141,9 @@ Methods:
 
 **Purpose:** Transform passive reference viewing into active guidance through continuous visual feedback.
 
-**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_PHASE_1.md` for detailed implementation checklist.
+**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_STAGE_1.md` for detailed implementation checklist.
 
-#### Phase 1: Photo Recreation with Tuner Interface
+#### Stage 1: Photo Recreation with Tuner Interface
 
 **Core Concept:**
 Like a music tuner - visual feedback shows how close the live camera view matches a reference photo. Users adjust their position until all parameters are in the "green zone."
@@ -205,7 +211,7 @@ Utilities:
 - Face detection: 10 FPS (every 100ms)
 - Tuner updates: 500ms debounce minimum
 - Reference metric extraction: <200ms
-- No ML models required (Phase 1)
+- No ML models required (Stage 1)
 
 **Acceptance Criteria:**
 - [ ] Users can recreate reference photos by following tuner feedback
@@ -214,7 +220,7 @@ Utilities:
 - [ ] Camera maintains 30 FPS with tuner active
 - [ ] Tuner interface intuitive without extensive training
 
-#### Phase 2: General Composition Guidance [FUTURE]
+#### Stage 2: General Composition Guidance [FUTURE]
 
 **Core Concept:**
 Same tuner interface, but target values generated from learned compositional principles instead of specific reference photo.
@@ -223,7 +229,7 @@ Same tuner interface, but target values generated from learned compositional pri
 1. User selects scenario: "Full Body + Restaurant"
 2. NO specific reference photo selected
 3. Tuner shows target values based on learned composition rules
-4. Same red/yellow/green feedback as Phase 1
+4. Same red/yellow/green feedback as Stage 1
 
 **Technical Approach (Exploratory):**
 - Pre-trained aesthetic models (e.g., NIMA)
@@ -231,7 +237,7 @@ Same tuner interface, but target values generated from learned compositional pri
 - Hybrid: Learned model + RAG retrieval + hand-crafted fallbacks
 - Still portrait-focused, same 4 parameters, same UI
 
-**Status:** Research phase, timeline TBD based on Phase 1 success
+**Status:** Research phase, timeline TBD based on Stage 1 success
 
 ---
 
@@ -268,9 +274,9 @@ Same tuner interface, but target values generated from learned compositional pri
 - [ ] User testing with real subjects (scheduled)
 - [ ] Document learnings for Feature 2
 
-### Feature 2 Phase 1: Tuner Interface [NEXT - 3-4 weeks]
+### Feature 2 Stage 1: Tuner Interface [NEXT - 3-4 weeks]
 **Timeline:** In development
-**See:** `FEATURE_2_PHASE_1.md` for complete implementation checklist
+**See:** `FEATURE_2_STAGE_1.md` for complete implementation checklist
 - [ ] Reference photo processing pipeline
 - [ ] Extract face metrics from reference photos
 - [ ] Build TunerDisplay component (4-parameter interface)
@@ -282,15 +288,15 @@ Same tuner interface, but target values generated from learned compositional pri
 - [ ] Performance optimization (maintain 30fps)
 - [ ] User testing: Validate tuner interface effectiveness
 
-### Feature 2 Phase 2: General Composition Guidance [RESEARCH]
+### Feature 2 Stage 2: General Composition Guidance [RESEARCH]
 **Status:** Exploratory, timeline TBD
-**Trigger:** Based on Phase 1 success and user demand
+**Trigger:** Based on Stage 1 success and user demand
 - [ ] Research aesthetic quality models (NIMA, alternatives)
 - [ ] Evaluate RAG approaches for compositional rules
 - [ ] Prototype target generation from scenario types
-- [ ] Integrate learned models with Phase 1 tuner UI
+- [ ] Integrate learned models with Stage 1 tuner UI
 - [ ] Validate generated targets lead to good photos
-- [ ] User testing: Phase 2 vs Phase 1 comparison
+- [ ] User testing: Stage 2 vs Stage 1 comparison
 
 ---
 

@@ -1,6 +1,6 @@
 # Feature 2: Live Instruction System
 
-**Status**: Phase 1 in Development
+**Status**: Stage 1 in Development
 **Last Updated**: 2025-11-26
 
 ---
@@ -39,7 +39,7 @@ Continuous visual feedback (like a music tuner) showing how close the live camer
 
 ---
 
-## Phase 1: Photo Recreation with Tuner Interface
+## Stage 1: Photo Recreation with Tuner Interface
 
 **Status:** In Development  
 **Target:** MVP for user testing
@@ -60,7 +60,7 @@ Enable users to recreate ANY reference photo (database or user-uploaded) through
 **Supported Photo Types:**
 - Single-face portraits ONLY (MVP constraint)
 - Frontal or near-frontal faces (face detection requirement)
-- Defer: Landscapes, objects, groups, side profiles → Phase 2 or beyond
+- Defer: Landscapes, objects, groups, side profiles → Stage 2 or beyond
 
 **Optimization Target:**
 - Extract measurable metrics from reference photo (face size, position, angle)
@@ -121,21 +121,30 @@ Horizontal:   🟢 ←——————•→ (Centered)
 
 **Reference Photo Processing:**
 
+**Uses expo-face-detector for static image analysis** (NOT expo-camera - that's for live frames only)
+
 1. **Target Extraction:**
+   - Install: `npx expo install expo-face-detector`
    - When photo selected: Check if metrics already computed
-   - If not cached: Run face detection + metric extraction
+   - If not cached: Run `FaceDetector.detectFacesAsync(imageUri, options)`
    - Cache results: Database photos pre-computed, user uploads computed on first selection
-   
+
 2. **Metrics Extracted:**
    - Face bounding box (x, y, width, height)
    - Face size ratio (face height / frame height)
    - Face center position (normalized x, y coordinates)
-   - Approximate device tilt (if derivable from face angle)
+   - Roll angle (head tilt) from face detection
+   - Eye positions (if available) for composition
 
 3. **No Quality Judgment:**
    - Accept any photo with detectable face
    - User's choice = target, regardless of composition quality
-   - Quality assessment is Phase 2 capability
+   - Quality assessment is Stage 2 capability
+
+**Key Tool Distinction:**
+- **expo-face-detector**: Analyzes STATIC reference photos (files/assets)
+- **expo-camera's onFacesDetected**: Analyzes LIVE camera frames
+- Both use same ML Kit/Vision API, different entry points
 
 **Live Camera Analysis:**
 
@@ -152,13 +161,105 @@ Horizontal:   🟢 ←——————•→ (Centered)
 3. **Fallback Handling:**
    - If face detection fails: Show "Face not detected" message
    - Disable tuner feedback until face visible
-   - No approximations - Phase 1 requires face detection
+   - No approximations - Stage 1 requires face detection
 
 **Performance Requirements:**
 - Camera preview: 30 FPS (non-negotiable)
 - Face detection: 10 FPS (every 100ms)
 - Tuner update: 500ms debounce minimum
 - Metric extraction from reference: <200ms
+
+---
+
+### Technical Implementation Details
+
+**expo-camera Face Detection Integration:**
+
+Stage 1 leverages expo-camera's built-in face detection via the `onFacesDetected` callback, which provides real-time face analysis without requiring additional ML libraries. The underlying implementation uses ML Kit (Android) and Vision API (iOS), giving us production-ready face detection with no extra dependencies.
+
+**Face Detection Capabilities We'll Leverage:**
+
+1. **Bounding Box Coordinates**
+   - `bounds: { origin: { x, y }, size: { width, height } }`
+   - Used for: Face positioning feedback (horizontal/vertical placement)
+   - Enables: "Move left/right" and "Raise/lower camera" instructions
+   - Normalized coordinates allow comparison across different photo sizes
+
+2. **Face Size Estimation**
+   - Derived from bounding box dimensions relative to frame size
+   - Used for: Distance feedback
+   - Calculation: `faceRatio = bounds.size.height / frameHeight`
+   - Enables: "Step closer/further" instructions based on target face size
+
+3. **Face Landmarks** (if available)
+   - Key facial points: eyes, nose, mouth corners
+   - Used for: Enhanced composition rules
+   - Enables: Rule-of-thirds alignment (e.g., eyes at upper third line)
+   - Fallback: Use bounding box center if landmarks unavailable
+
+4. **Head Pose/Roll Angle** (if available)
+   - `rollAngle`, `yawAngle`, `pitchAngle` in degrees
+   - Used for: Angle matching and tilt feedback
+   - Enables: "Tilt phone forward/backward" instructions
+   - Fallback: Use device orientation sensors if pose data unavailable
+
+**onFacesDetected Callback Data Structure:**
+
+```typescript
+interface FaceDetectionResult {
+  faces: Array<{
+    faceID: number;
+    bounds: {
+      origin: { x: number; y: number };
+      size: { width: number; height: number };
+    };
+    rollAngle?: number;    // Head rotation (side tilt)
+    yawAngle?: number;     // Left/right turn
+    pitchAngle?: number;   // Up/down tilt
+    leftEyePosition?: { x: number; y: number };
+    rightEyePosition?: { x: number; y: number };
+    // Additional landmarks may be available platform-dependent
+  }>;
+}
+```
+
+**Real-Time Instruction Generation Flow:**
+
+1. **Capture**: `onFacesDetected` fires at camera frame rate
+2. **Throttle**: Limit processing to 10 FPS (every 100ms) for performance
+3. **Extract Metrics**:
+   - Face center: `{ x: bounds.origin.x + bounds.size.width/2, y: bounds.origin.y + bounds.size.height/2 }`
+   - Face ratio: `bounds.size.height / frameHeight`
+   - Tilt angle: Use `rollAngle` or fallback to device orientation
+4. **Compare**: Calculate deviation from reference photo metrics
+5. **Map to Zones**: Determine red/yellow/green state for each parameter
+6. **Debounce**: Update UI with 500ms minimum delay to prevent flickering
+7. **Render**: Update tuner display with current zone states
+
+**Platform Differences:**
+
+- **iOS (Vision API)**: Typically provides full landmark and pose data
+- **Android (ML Kit)**: Landmark availability depends on detection mode
+- **Fallback Strategy**: Code defensively - use available data, degrade gracefully
+- **Testing**: Validate on both platforms with varying lighting conditions
+
+**Why No Additional ML Libraries Needed:**
+
+expo-camera's built-in face detection provides all the data needed for Stage 1's tuner interface. We don't need TensorFlow.js, MediaPipe, or custom ML models because:
+- Bounding boxes give us positioning (x, y coordinates)
+- Face size gives us distance estimation
+- Pose angles give us tilt feedback
+- All data available at 30+ FPS through native APIs
+- Stage 1 focuses on matching reference photos, not assessing quality
+
+**Performance Optimization Strategy:**
+
+- Use `requestAnimationFrame` for UI updates
+- Debounce tuner zone calculations (500ms)
+- Cache reference photo metrics (compute once, reuse)
+- Throttle face detection processing to 10 FPS max
+- Skip frames if previous analysis still processing
+- Profile on mid-range Android device (performance bottleneck)
 
 ---
 
@@ -182,7 +283,7 @@ Horizontal:   🟢 ←——————•→ (Centered)
 
 ### Deferred to Later Phases
 
-**Not Included in Phase 1:**
+**Not Included in Stage 1:**
 - Lighting guidance
 - Background analysis
 - Body pose instructions
@@ -216,10 +317,10 @@ Horizontal:   🟢 ←——————•→ (Centered)
 
 ---
 
-## Phase 2: General Composition Guidance
+## Stage 2: General Composition Guidance
 
 **Status:** Future / Research Phase  
-**Trigger:** Casper's decision after Phase 1 testing + foundation work
+**Trigger:** Casper's decision after Stage 1 testing + foundation work
 
 ### Objective
 
@@ -227,10 +328,10 @@ Enable users to get good photo guidance WITHOUT requiring a specific matching re
 
 ---
 
-### Core Concept Difference from Phase 1
+### Core Concept Difference from Stage 1
 
-**Phase 1:** "Here's a photo, help me recreate it exactly"  
-**Phase 2:** "I want to take a standing full-body shot in a restaurant, help me compose a good photo"
+**Stage 1:** "Here's a photo, help me recreate it exactly"  
+**Stage 2:** "I want to take a standing full-body shot in a restaurant, help me compose a good photo"
 
 **Key Innovation:** Target values come from model's learned understanding, not from analyzing a specific reference photo.
 
@@ -241,7 +342,7 @@ Enable users to get good photo guidance WITHOUT requiring a specific matching re
 **User Flow:**
 1. User selects scenario type: "Full Body + Restaurant"
 2. NO specific reference photo selected
-3. Tuner interface still shows (same UI as Phase 1)
+3. Tuner interface still shows (same UI as Stage 1)
 4. Target values generated from learned composition rules for this scenario
 5. User adjusts until all tuners are green
 
@@ -252,7 +353,7 @@ Enable users to get good photo guidance WITHOUT requiring a specific matching re
   - Subject occupies 70% of frame height
   - Slight downward tilt (-5°)
   - Subject centered horizontally
-- These become tuner targets, same interface as Phase 1
+- These become tuner targets, same interface as Stage 1
 
 ---
 
@@ -286,7 +387,7 @@ Process:
   2. Extract average metrics from retrieved photos
   3. Apply aesthetic model adjustments
   4. Generate target: {distance: 45%, tilt: -5°, height: 20%, horizontal: 50%}
-Output: Same 4-parameter targets as Phase 1
+Output: Same 4-parameter targets as Stage 1
 ```
 
 ---
@@ -294,7 +395,7 @@ Output: Same 4-parameter targets as Phase 1
 ### Scope Constraints
 
 **Still Portrait-Focused:**
-- Phase 2 does NOT expand to landscapes, objects, food photography
+- Stage 2 does NOT expand to landscapes, objects, food photography
 - Focus remains on human portraits (full-body, half-body, close-up)
 - Just removes requirement for specific matching reference photo
 
@@ -304,31 +405,31 @@ Output: Same 4-parameter targets as Phase 1
 - Same red/yellow/green feedback zones
 - Innovation is in target generation, not interface
 
-**Built on Phase 1:**
-- Phase 1 architecture is foundation
-- Phase 2 adds different "target source" module
-- User can still choose Phase 1 mode (specific reference) OR Phase 2 mode (general guidance)
+**Built on Stage 1:**
+- Stage 1 architecture is foundation
+- Stage 2 adds different "target source" module
+- User can still choose Stage 1 mode (specific reference) OR Stage 2 mode (general guidance)
 
 ---
 
-### Why Phase 2 is Necessary
+### Why Stage 2 is Necessary
 
-**Limitation of Phase 1:**
+**Limitation of Stage 1:**
 - Impossible to provide exact reference photo for every situation
 - Infinite combinations of: poses, locations, lighting, subject characteristics
 - User may want guidance but not have/find perfect reference
 
-**Phase 2 Value:**
+**Stage 2 Value:**
 - Handles edge cases and uncommon scenarios
 - Provides "good enough" guidance when specific reference unavailable
 - More flexible, adapts to user's actual situation
-- Still maintains same simple tuner interface users learned in Phase 1
+- Still maintains same simple tuner interface users learned in Stage 1
 
 ---
 
 ### Research Questions
 
-**Before Phase 2 Development:**
+**Before Stage 2 Development:**
 
 1. **Model Selection:**
    - Which pre-trained models exist for aesthetic quality?
@@ -346,29 +447,29 @@ Output: Same 4-parameter targets as Phase 1
    - Fallback strategy if model/RAG fails to generate targets?
 
 4. **Validation:**
-   - How to measure if Phase 2 targets are "good"?
-   - User testing: Do Phase 2 results feel helpful or arbitrary?
-   - Comparison: Phase 2 general guidance vs Phase 1 specific matching
+   - How to measure if Stage 2 targets are "good"?
+   - User testing: Do Stage 2 results feel helpful or arbitrary?
+   - Comparison: Stage 2 general guidance vs Stage 1 specific matching
 
 ---
 
 ### Timeline & Development Approach
 
-**Trigger for Starting Phase 2:**
+**Trigger for Starting Stage 2:**
 - Casper's decision based on:
-  - Phase 1 user testing results
+  - Stage 1 user testing results
   - Feature requests for scenarios not in database
   - Strategic product direction
 
 **Parallel Development Possible:**
-- After Phase 1 foundation is stable
-- Merge Phase 1 foundation to main
-- Branch 1: Continue iterating Phase 1 UX
-- Branch 2: Research and build Phase 2 target generation
+- After Stage 1 foundation is stable
+- Merge Stage 1 foundation to main
+- Branch 1: Continue iterating Stage 1 UX
+- Branch 2: Research and build Stage 2 target generation
 - Both use same core tuner architecture
 
 **Research-Heavy Phase:**
-- More unknowns than Phase 1
+- More unknowns than Stage 1
 - May require experimentation with multiple approaches
 - Expect iterative development, not linear progression
 
@@ -376,27 +477,27 @@ Output: Same 4-parameter targets as Phase 1
 
 ### Success Criteria (Tentative)
 
-**Phase 2 is successful if:**
+**Stage 2 is successful if:**
 - Users can get helpful guidance without specific reference photo
 - Generated targets lead to aesthetically pleasing photos
 - Works across variety of portrait scenarios (not just scenarios in database)
 - Guidance doesn't feel arbitrary or confusing
-- Adoption: Users actually choose Phase 2 mode for appropriate situations
+- Adoption: Users actually choose Stage 2 mode for appropriate situations
 
 **Measurement:**
 - Photo quality assessment (objective metrics + human evaluation)
-- User surveys: Helpfulness, trust in guidance, preference vs Phase 1
-- Usage patterns: When do users choose Phase 2 vs Phase 1?
+- User surveys: Helpfulness, trust in guidance, preference vs Stage 1
+- Usage patterns: When do users choose Stage 2 vs Stage 1?
 
 ---
 
 ## Overall Success Metrics
 
-### Phase 1 Metrics
-See Phase 1 section above for detailed metrics.
+### Stage 1 Metrics
+See Stage 1 section above for detailed metrics.
 
-### Phase 2 Metrics  
-See Phase 2 section above for detailed metrics.
+### Stage 2 Metrics  
+See Stage 2 section above for detailed metrics.
 
 ### Product-Level Metrics (Both Phases)
 
@@ -419,7 +520,7 @@ See Phase 2 section above for detailed metrics.
 
 ## Development Status & Next Steps
 
-### Phase 1: Ready for Development
+### Stage 1: Ready for Development
 
 **Decisions Made:**
 - ✅ Tuner interface with 4 parameters (distance, tilt, height, horizontal)
@@ -431,7 +532,7 @@ See Phase 2 section above for detailed metrics.
 - ✅ User upload validation: face detection only
 
 **Immediate Next Steps:**
-1. Create FEATURE_2_PHASE_1.md with detailed implementation checklist
+1. Create FEATURE_2_STAGE_1.md with detailed implementation checklist
 2. Design tuner UI mockups (visual representation of 4-parameter interface)
 3. Implement reference photo metric extraction pipeline
 4. Build tuner display components
@@ -444,7 +545,7 @@ See Phase 2 section above for detailed metrics.
 
 ---
 
-### Phase 2: Research & Planning Phase
+### Stage 2: Research & Planning Phase
 
 **Not Ready for Development:**
 - Need more research on model selection (NIMA, alternatives)
@@ -457,23 +558,23 @@ See Phase 2 section above for detailed metrics.
 2. Evaluate RAG approaches for compositional rules
 3. Prototype target generation from scenario types
 4. Define success metrics for "good" targets
-5. Create detailed Phase 2 technical spec
+5. Create detailed Stage 2 technical spec
 
-**Trigger:** Casper's decision after Phase 1 testing
+**Trigger:** Casper's decision after Stage 1 testing
 
-**Potential Timeline:** Start research after Phase 1 foundation stable, development 4-6 weeks (highly uncertain)
+**Potential Timeline:** Start research after Stage 1 foundation stable, development 4-6 weeks (highly uncertain)
 
 ---
 
 ## Risks & Mitigation Strategies
 
-### Phase 1 Risks
+### Stage 1 Risks
 
 **Risk: Face detection fails in common scenarios**
 - **Scenarios:** Low light, side angles, subject turned away, glasses/masks
 - **Mitigation:** Clear error messaging, encourage frontal face positioning
 - **Fallback:** Disable tuner, show "Face not detected - please face camera directly"
-- **Future:** Phase 2 could add non-face-based approximations
+- **Future:** Stage 2 could add non-face-based approximations
 
 **Risk: Tuner interface confusing for users**
 - **Scenarios:** Don't understand zones, ignore feedback, overwhelming with 4 parameters
@@ -489,9 +590,9 @@ See Phase 2 section above for detailed metrics.
 
 **Risk: Reference photo quality varies (user uploads)**
 - **Scenarios:** Blurry photos, poor composition, unusual crops
-- **Mitigation:** Accept user's choice without judgment (Phase 1 principle)
+- **Mitigation:** Accept user's choice without judgment (Stage 1 principle)
 - **Communication:** Set expectation that target is "match this photo" not "take good photo"
-- **Future:** Phase 2 can address quality through learned models
+- **Future:** Stage 2 can address quality through learned models
 
 **Risk: Normalized thresholds don't feel right**
 - **Scenarios:** Some parameters too sensitive, others not sensitive enough
@@ -501,7 +602,7 @@ See Phase 2 section above for detailed metrics.
 
 ---
 
-### Phase 2 Risks
+### Stage 2 Risks
 
 **Risk: Model-generated targets feel arbitrary**
 - **Scenarios:** Users don't understand why target is where it is, don't trust guidance
@@ -515,41 +616,41 @@ See Phase 2 section above for detailed metrics.
 - **Testing:** Validate consistency across multiple retrievals for same scenario
 - **Refinement:** Manual curation of RAG database for consistency
 
-**Risk: Phase 2 research takes longer than expected**
+**Risk: Stage 2 research takes longer than expected**
 - **Scenarios:** Model selection challenging, integration complex, results poor
-- **Mitigation:** Parallel development with Phase 1 iteration
-- **Flexibility:** Phase 1 can continue improving while Phase 2 researched
-- **Checkpoint:** Re-evaluate Phase 2 necessity after Phase 1 success
+- **Mitigation:** Parallel development with Stage 1 iteration
+- **Flexibility:** Stage 1 can continue improving while Stage 2 researched
+- **Checkpoint:** Re-evaluate Stage 2 necessity after Stage 1 success
 
-**Risk: Users don't need/want Phase 2**
-- **Scenarios:** Phase 1 database coverage sufficient, users prefer specific references
-- **Mitigation:** Validate demand through Phase 1 user feedback
-- **Decision:** Don't build Phase 2 if Phase 1 solves the problem
-- **Alternative:** Expand Phase 1 database instead
+**Risk: Users don't need/want Stage 2**
+- **Scenarios:** Stage 1 database coverage sufficient, users prefer specific references
+- **Mitigation:** Validate demand through Stage 1 user feedback
+- **Decision:** Don't build Stage 2 if Stage 1 solves the problem
+- **Alternative:** Expand Stage 1 database instead
 
 ---
 
 ## Key Principles to Remember
 
-**Phase 1 Core Tenets:**
+**Stage 1 Core Tenets:**
 1. User's choice of reference photo is the target - no quality judgment
 2. Visual feedback (tuner) is more intuitive than text instructions
 3. Single-face portraits only - stay focused on this constraint
 4. Simple is better - 3 zones, 4 parameters, clear feedback
 5. Performance is non-negotiable - 30 FPS camera preview always
 
-**Phase 2 Core Tenets:**
-1. Built on Phase 1 foundation - same UI, different target source
+**Stage 2 Core Tenets:**
+1. Built on Stage 1 foundation - same UI, different target source
 2. Research-heavy - don't commit to approach without validation
 3. Portrait-focused indefinitely - no scope creep to other photo types
-4. Necessity driven by Phase 1 limitations, not speculation
+4. Necessity driven by Stage 1 limitations, not speculation
 5. User needs validate the direction - build if users ask for it
 
 ---
 
 ## Related Documentation
 
-- **FEATURE_2_PHASE_1.md** - Detailed Phase 1 implementation checklist (to be created)
+- **FEATURE_2_STAGE_1.md** - Detailed Stage 1 implementation checklist (to be created)
 - **PM_DECISIONS_RESOLVED.md** - Captured decisions from PM discussions (to be created)
 - **Project.md** - Overall product vision and feature roadmap
 - **FEATURE_1.md** - Reference gallery (predecessor feature)
@@ -558,6 +659,6 @@ See Phase 2 section above for detailed metrics.
 ---
 
 **Last Updated:** 2025-11-26
-**Phase 1 Status:** Scoping complete, ready for detailed spec
-**Phase 2 Status:** Conceptual, research phase, no development timeline
+**Stage 1 Status:** Scoping complete, ready for detailed spec
+**Stage 2 Status:** Conceptual, research phase, no development timeline
 

@@ -2,42 +2,32 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import TestSwipe from '@/components/TestSwipe';
-import { useDevSettings } from '@/contexts/DevContext';
 
-const scenarios = [
-  { id: 'portrait-full', title: 'Portrait\nFull Body', icon: '🧍' },
-  { id: 'portrait-half', title: 'Portrait\nHalf Body', icon: '👤' },
-  { id: 'close-up', title: 'Close Up', icon: '😊' },
-];
-
-export default function ScenarioScreen() {
-  const { settings } = useDevSettings();
-
-  const handleScenarioSelect = (scenarioId: string) => {
-    router.push({ pathname: '/location', params: { scenario: scenarioId } });
-  };
-
+export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.content}>
-        <Text style={styles.title}>Choose Photo Type</Text>
-        <View style={styles.grid}>
-          {scenarios.map((scenario) => (
-            <TouchableOpacity
-              key={scenario.id}
-              style={styles.button}
-              onPress={() => handleScenarioSelect(scenario.id)}
-            >
-              <Text style={styles.icon}>{scenario.icon}</Text>
-              <Text style={styles.buttonText}>{scenario.title}</Text>
-            </TouchableOpacity>
-          ))}
+        <Text style={styles.title}>BoyfriendCam</Text>
+        <Text style={styles.subtitle}>GPS-like photography guidance</Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.mainButton}
+            onPress={() => router.push('/scenario')}
+          >
+            <Text style={styles.buttonIcon}>📸</Text>
+            <Text style={styles.buttonText}>Take Photos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.mainButton}
+            onPress={() => router.push('/album')}
+          >
+            <Text style={styles.buttonIcon}>🖼️</Text>
+            <Text style={styles.buttonText}>Album</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {/* Test swipe component - only shown if enabled */}
-      {settings.showTestSwipe && <TestSwipe />}
     </SafeAreaView>
   );
 }
@@ -50,39 +40,44 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 60,
   },
   title: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 12,
   },
-  grid: {
+  subtitle: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 60,
+  },
+  buttonContainer: {
     flex: 1,
     gap: 20,
     justifyContent: 'center',
+    paddingBottom: 40,
   },
-  button: {
+  mainButton: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 120,
+    minHeight: 140,
     borderWidth: 2,
     borderColor: '#333',
   },
-  icon: {
-    fontSize: 48,
-    marginBottom: 12,
+  buttonIcon: {
+    fontSize: 56,
+    marginBottom: 16,
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '600',
     color: '#fff',
-    textAlign: 'center',
-    lineHeight: 24,
   },
 });

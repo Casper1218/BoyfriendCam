@@ -1,7 +1,7 @@
-# Feature 2 Phase 1: Photo Recreation with Tuner Interface
+# Feature 2 Stage 1: Photo Recreation with Tuner Interface
 
-**Status**: Ready for Development  
-**Timeline**: 3-4 weeks for MVP  
+**Status**: Ready for Development
+**Timeline**: 3-4 weeks for MVP
 **Target**: User testing and validation
 
 ---
@@ -18,26 +18,188 @@ Enable users to recreate ANY reference photo (database or user-uploaded) through
 
 **Goal:** Extract target metrics from reference photos and cache for performance
 
+**UPDATED: Use react-native-vision-camera for ALL face detection**
+
+**IMPORTANT:** expo-face-detector is deprecated and removed in Expo SDK 52. The new approach uses react-native-vision-camera for both static image analysis (Phase 1) and live camera frames (Phase 3).
+
+**Installation:**
+```bash
+# Core vision camera package
+npm install react-native-vision-camera
+
+# Face detection plugin
+npm install react-native-vision-camera-face-detector
+
+# Required for frame processors
+npm install react-native-worklets-core
+
+# Must use development build (NOT Expo Go)
+npx expo prebuild
+npx expo run:ios  # or run:android
+```
+
+**Implementation Tasks:**
+
+- [ ] Install react-native-vision-camera packages (see Installation above)
 - [ ] Create `utils/referencePhotoAnalysis.ts` file
-- [ ] Implement face detection on static images
-- [ ] Extract metrics function:
-  - [ ] Face bounding box (x, y, width, height)
-  - [ ] Face size ratio (face height / frame height)
-  - [ ] Face center position (normalized x, y)
-  - [ ] Derived device tilt (optional, from face angle)
+- [ ] Implement `extractFaceMetrics(imageUri)` function using react-native-vision-camera:
+  ```typescript
+  import { detectFaces } from 'react-native-vision-camera-face-detector';
+
+  interface FaceMetrics {
+    faceRatio: number;        // Face height / image height
+    faceCenterX: number;      // 0-1 normalized
+    faceCenterY: number;      // 0-1 normalized
+    rollAngle: number | null; // Head tilt in degrees
+    pitchAngle: number | null; // Up/down angle
+    yawAngle: number | null;   // Left/right angle
+    bounds: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  }
+
+  export async function extractFaceMetrics(
+    imageUri: string
+  ): Promise<FaceMetrics> {
+    const faces = await detectFaces({
+      image: imageUri,
+      options: {
+        performanceMode: 'accurate',    // Accurate mode for static images
+        landmarkMode: 'all',            // Get eye positions
+        classificationMode: 'all'       // Get smile/eyes open probabilities
+      }
+    });
+
+    if (faces.length === 0) {
+      throw new Error('No face detected');
+    }
+
+    if (faces.length > 1) {
+      console.warn('Multiple faces detected, using largest');
+    }
+
+    // Use largest face if multiple detected
+    const face = faces.reduce((largest, current) =>
+      current.bounds.width > largest.bounds.width ? current : largest
+    );
+
+    // Get image dimensions from bounds
+    // Note: bounds are in pixels, need to know image size for normalization
+    const imageWidth = face.bounds.x + face.bounds.width + 100; // Approximation
+    const imageHeight = face.bounds.y + face.bounds.height + 100; // Approximation
+
+    return {
+      faceRatio: face.bounds.height / imageHeight,
+      faceCenterX: (face.bounds.x + face.bounds.width / 2) / imageWidth,
+      faceCenterY: (face.bounds.y + face.bounds.height / 2) / imageHeight,
+      rollAngle: face.rollAngle ?? null,
+      pitchAngle: face.pitchAngle ?? null,
+      yawAngle: face.yawAngle ?? null,
+      bounds: {
+        x: face.bounds.x,
+        y: face.bounds.y,
+        width: face.bounds.width,
+        height: face.bounds.height,
+      },
+    };
+  }
+  ```
+
 - [ ] Create caching system:
-  - [ ] Check if metrics already computed for photo
-  - [ ] Store computed metrics (in-memory for MVP, persistent later)
-  - [ ] Lazy computation: compute on first selection, cache for subsequent
-- [ ] Pre-compute metrics for all database photos
-- [ ] Test: Metrics extraction accurate across photo variations
-- [ ] Test: Caching working correctly (no redundant computation)
+  - [ ] Define cache structure: `Map<photoId, FaceMetrics>`
+  - [ ] Implement `getCachedMetrics(photoId)` - check cache first
+  - [ ] Implement `cacheMetrics(photoId, metrics)` - store after extraction
+  - [ ] Cache stored in-memory for MVP (AsyncStorage for persistence later)
+
+- [ ] Create `getReferencePhotoMetrics(photoId)` helper:
+  ```typescript
+  import { Image } from 'react-native';
+
+  const metricsCache = new Map<string, FaceMetrics>();
+
+  export async function getReferencePhotoMetrics(
+    photoId: string,
+    photoSource: any  // require('@/assets/...')
+  ): Promise<FaceMetrics> {
+    // Check cache first
+    if (metricsCache.has(photoId)) {
+      return metricsCache.get(photoId)!;
+    }
+
+    // Get the URI from the image source
+    const resolvedSource = Image.resolveAssetSource(photoSource);
+
+    // Extract metrics (expensive operation)
+    const metrics = await extractFaceMetrics(resolvedSource.uri);
+
+    // Cache for future use
+    metricsCache.set(photoId, metrics);
+
+    return metrics;
+  }
+  ```
+
+- [ ] **Optional: Pre-compute all 135 database photos on app startup**
+  - Run in background after app loads
+  - Store in AsyncStorage for persistence across sessions
+  - Shows loading indicator first time only
+
+- [ ] **Add debug visualization in album (RECOMMENDED)**:
+  - [ ] Add toggle button in album photo detail view: "Show Face Detection"
+  - [ ] When enabled, overlay face bounding box on photo
+  - [ ] Display detected metrics as text overlay
+  - [ ] Helps validate Phase 1 is working correctly before building tuner
+  - Implementation in `app/album.tsx`:
+    ```typescript
+    const [showFaceBox, setShowFaceBox] = useState(false);
+    const [faceMetrics, setFaceMetrics] = useState<FaceMetrics | null>(null);
+
+    // When photo selected, extract metrics
+    useEffect(() => {
+      if (selectedPhoto) {
+        extractFaceMetrics(selectedPhoto.source, imageSize)
+          .then(setFaceMetrics)
+          .catch(err => console.log('No face detected'));
+      }
+    }, [selectedPhoto]);
+
+    // Render debug overlay
+    {showFaceBox && faceMetrics && (
+      <View style={{
+        position: 'absolute',
+        left: faceMetrics.bounds.x,
+        top: faceMetrics.bounds.y,
+        width: faceMetrics.bounds.width,
+        height: faceMetrics.bounds.height,
+        borderWidth: 2,
+        borderColor: 'lime',
+      }} />
+    )}
+    ```
+
+**Testing Tasks:**
+- [ ] Test on all 135 database photos - verify all have detectable faces
+- [ ] Test face detection accuracy (are bounding boxes correct?)
+- [ ] Test caching - second access should be instant
+- [ ] Test error handling - what if photo has no face?
+- [ ] Test multiple faces - does it pick the largest?
+- [ ] Measure performance - metrics extraction should complete <200ms per photo
 
 **Acceptance Criteria:**
-- [ ] Can extract face metrics from any single-face portrait
-- [ ] Computation completes in <200ms
-- [ ] Database photos pre-computed, user uploads computed on selection
-- [ ] Cache prevents redundant processing
+- [ ] Can extract face metrics from any single-face portrait using expo-face-detector
+- [ ] Metrics extraction completes in <200ms per photo
+- [ ] Cache prevents redundant processing (instant on second access)
+- [ ] Database photos can be pre-computed and cached
+- [ ] User uploads validated on selection (face detection runs once)
+- [ ] Debug visualization in album confirms face detection working
+
+**Key Distinction:**
+- **Phase 1 (this phase)**: Uses `react-native-vision-camera-face-detector`'s `detectFaces()` for STATIC reference photos
+- **Phase 3 (later)**: Uses `react-native-vision-camera`'s frame processors for LIVE camera frames
+- Both use same underlying ML Kit (Android) / Vision API (iOS), unified through one library!
 
 ---
 
@@ -82,33 +244,68 @@ Enable users to recreate ANY reference photo (database or user-uploaded) through
 
 ### Phase 3: Live Camera Analysis
 
-**Goal:** Detect face in real-time and extract same metrics as reference processing
+**Goal:** Detect face in real-time using react-native-vision-camera frame processors
 
+- [ ] Replace expo-camera with react-native-vision-camera Camera component
 - [ ] Create `utils/liveFrameAnalysis.ts` file
-- [ ] Integrate expo-camera face detection:
-  - [ ] Enable face detection mode
-  - [ ] Handle detection callbacks
-  - [ ] Extract face bounds from detection results
-- [ ] Implement metric extraction from live frame:
-  - [ ] Face size ratio calculation
-  - [ ] Face center position calculation
-  - [ ] Phone orientation from expo-sensors
-- [ ] Throttle analysis:
-  - [ ] Limit to 10 FPS (every 100ms)
-  - [ ] Use requestAnimationFrame for smooth updates
-  - [ ] Cancel pending analysis if new frame available
+- [ ] Implement frame processor with face detection:
+  ```typescript
+  import { Camera, useFrameProcessor } from 'react-native-vision-camera';
+  import { useFaceDetector } from 'react-native-vision-camera-face-detector';
+  import { useSharedValue } from 'react-native-worklets-core';
+
+  const CameraWithFaceTracking = ({ targetMetrics }) => {
+    const { detectFaces } = useFaceDetector({
+      performanceMode: 'fast',    // Fast mode for real-time
+      landmarkMode: 'none',        // Skip landmarks for speed
+      contourMode: 'none',
+      classificationMode: 'none'
+    });
+
+    const currentFaceData = useSharedValue(null);
+
+    const frameProcessor = useFrameProcessor((frame) => {
+      'worklet'
+      const faces = detectFaces(frame);
+      if (faces.length > 0) {
+        const face = faces[0];
+        currentFaceData.value = {
+          faceRatio: face.bounds.height / frame.height,
+          faceCenterX: (face.bounds.x + face.bounds.width / 2) / frame.width,
+          faceCenterY: (face.bounds.y + face.bounds.height / 2) / frame.height,
+          rollAngle: face.rollAngle ?? null,
+          pitchAngle: face.pitchAngle ?? null,
+          yawAngle: face.yawAngle ?? null,
+        };
+      }
+    }, [detectFaces]);
+
+    return (
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={true}
+        frameProcessor={frameProcessor}
+      />
+    );
+  };
+  ```
+- [ ] Throttle frame processing:
+  - [ ] Process every 100ms (10 FPS max)
+  - [ ] Skip frames if processing is behind
+  - [ ] Use worklet threading for performance
 - [ ] Handle detection failures:
   - [ ] Graceful fallback when no face detected
   - [ ] Clear error messaging to user
   - [ ] Don't show tuner feedback when face unavailable
 - [ ] Test: Face detection works in typical conditions
 - [ ] Test: Metrics match reference photo extraction format
-- [ ] Test: Throttling prevents performance degradation
+- [ ] Test: Frame processing doesn't block UI thread
 
 **Acceptance Criteria:**
 - [ ] Face detected reliably in frontal/near-frontal poses
-- [ ] Metrics updated at 10 FPS max
-- [ ] Camera preview maintains 30 FPS
+- [ ] Frame processing at 10 FPS max
+- [ ] Camera preview maintains 30 FPS (UI thread not blocked)
 - [ ] Clear feedback when face not detected
 
 ---
@@ -429,6 +626,135 @@ components/
 
 ---
 
+### Face Detection Implementation
+
+**react-native-vision-camera with face-detector plugin:**
+
+Stage 1 uses react-native-vision-camera for ALL face detection (both static images and live camera). This leverages ML Kit (Android) and Vision API (iOS) natively.
+
+**Key Integration Points:**
+
+1. **Static Image Detection (Reference Photos):**
+```typescript
+import { detectFaces } from 'react-native-vision-camera-face-detector';
+
+const analyzeReferencePhoto = async (imageUri: string) => {
+  const faces = await detectFaces({
+    image: imageUri,
+    options: {
+      performanceMode: 'accurate',
+      landmarkMode: 'all',
+      classificationMode: 'all'
+    }
+  });
+
+  if (faces.length > 0) {
+    return faces[0]; // Use largest face
+  }
+  return null;
+};
+```
+
+2. **Live Camera Detection (Frame Processor):**
+```typescript
+import { Camera, useFrameProcessor } from 'react-native-vision-camera';
+import { useFaceDetector } from 'react-native-vision-camera-face-detector';
+
+const { detectFaces } = useFaceDetector({
+  performanceMode: 'fast',  // Fast for real-time
+  landmarkMode: 'none',     // Skip landmarks for speed
+  contourMode: 'none',
+  classificationMode: 'none'
+});
+
+const frameProcessor = useFrameProcessor((frame) => {
+  'worklet'
+  const faces = detectFaces(frame);
+  // Process faces...
+}, [detectFaces]);
+```
+
+3. **Face Detection Data Available:**
+
+**Always Available:**
+- `bounds.x`, `bounds.y` - Top-left corner of face bounding box
+- `bounds.width`, `bounds.height` - Face bounding box dimensions
+- `trackingId` - Unique identifier for tracking same face across frames
+
+**Usually Available:**
+- `rollAngle` - Head tilt angle (-180 to 180 degrees)
+- `pitchAngle` - Up/down face angle
+- `yawAngle` - Left/right face turn
+- `landmarks` - Eyes, nose, mouth positions (if landmarkMode enabled)
+- `smilingProbability`, `leftEyeOpenProbability`, `rightEyeOpenProbability` (if classificationMode enabled)
+
+4. **Metric Extraction Functions:**
+
+```typescript
+// utils/liveFrameAnalysis.ts
+export function extractLiveMetrics(face: Face, frameSize: { width: number; height: number }) {
+  return {
+    // Distance parameter - face size relative to frame
+    faceRatio: face.bounds.height / frameSize.height,
+
+    // Horizontal parameter - face center X position (0-1 normalized)
+    faceCenterX: (face.bounds.x + face.bounds.width / 2) / frameSize.width,
+
+    // Height parameter - face center Y position (0-1 normalized)
+    faceCenterY: (face.bounds.y + face.bounds.height / 2) / frameSize.height,
+
+    // Tilt parameter - face roll angle
+    rollAngle: face.rollAngle ?? null,
+    pitchAngle: face.pitchAngle ?? null,
+    yawAngle: face.yawAngle ?? null,
+  };
+}
+```
+
+5. **Performance Optimization:**
+
+```typescript
+// Frame processor runs on worklet thread - doesn't block UI
+// Built-in throttling through worklet scheduling
+const frameProcessor = useFrameProcessor((frame) => {
+  'worklet'
+  const faces = detectFaces(frame);
+
+  if (faces.length > 0) {
+    const face = faces[0];
+    // Update shared value - automatically synced to UI thread
+    currentFaceData.value = extractLiveMetrics(face, {
+      width: frame.width,
+      height: frame.height
+    });
+  }
+}, [detectFaces]);
+```
+
+**Platform Testing Checklist:**
+
+- [ ] Test on iOS - verify all face data available
+- [ ] Test on Android - check face detection accuracy
+- [ ] Test in low light - validate detection reliability
+- [ ] Test with glasses/masks - document limitations
+- [ ] Test multiple face handling - ensure primary face selection works
+- [ ] Profile performance - ensure 30 FPS camera preview maintained
+
+**Fallback Strategies:**
+
+- If angles unavailable: Use bounding box center only
+- If face detection fails intermittently: Maintain last known good values
+- If face lost completely: Show "Face not detected" message
+
+**Required Dependencies:**
+
+- `react-native-vision-camera` - Core camera with frame processors
+- `react-native-vision-camera-face-detector` - Face detection plugin
+- `react-native-worklets-core` - Worklet threading
+- Requires development build (NOT Expo Go)
+
+---
+
 ## Testing Checklist
 
 ### Unit Testing
@@ -484,17 +810,17 @@ components/
 ### UX Refinements:
 -
 
-### Phase 2 Implications:
+### Stage 2 Implications:
 -
 
 ---
 
-## Next Steps After Phase 1
+## Next Steps After Stage 1
 
-1. **Decision Point:** Continue Phase 1 iteration vs start Phase 2 research
-2. **Phase 1 Enhancements:** Based on user feedback (persistent uploads, additional parameters, refined thresholds)
-3. **Phase 2 Research:** If triggered, begin model selection and RAG architecture exploration
-4. **Parallel Development:** Possible to iterate Phase 1 while researching Phase 2
+1. **Decision Point:** Continue Stage 1 iteration vs start Stage 2 research
+2. **Stage 1 Enhancements:** Based on user feedback (persistent uploads, additional parameters, refined thresholds)
+3. **Stage 2 Research:** If triggered, begin model selection and RAG architecture exploration
+4. **Parallel Development:** Possible to iterate Stage 1 while researching Stage 2
 
 ---
 

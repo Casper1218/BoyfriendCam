@@ -56,7 +56,15 @@ npm run reset-project  # Moves starter code to app-example, creates blank app di
 - **React Native**: 0.81.5
 - **Router**: expo-router v6 (file-based routing)
 - **TypeScript**: Strict mode enabled
-- **Expo Features**: Camera, Media Library, Haptics, Status Bar
+- **Expo Features**:
+  - Camera (expo-camera for Feature 1)
+  - Media Library
+  - Haptics
+  - Status Bar
+- **Face Detection**: react-native-vision-camera with face-detector plugin (required for Feature 2 Stage 1)
+  - Replaces deprecated expo-face-detector (removed in SDK 52)
+  - Uses ML Kit (Android) and Vision API (iOS) natively
+  - Requires development build (NOT Expo Go)
 
 ### Navigation Flow
 The app uses a wizard-style navigation pattern powered by expo-router:
@@ -137,10 +145,12 @@ import { Something } from '@/components/Something';
 
 ### Permissions
 The app requires runtime permissions for:
-- Camera access (expo-camera)
+- Camera access (expo-camera for Feature 1, react-native-vision-camera for Feature 2)
 - Media library access (expo-media-library)
 
 These are requested on-demand in the camera screen.
+
+**Note:** react-native-vision-camera requires additional camera permissions configuration in iOS Info.plist and Android AndroidManifest.xml during prebuild.
 
 ### Styling Approach
 All screens use StyleSheet.create() with inline styles. The app uses a dark theme:
@@ -234,12 +244,12 @@ interface ReferenceGalleryProps {
 
 ### Feature 2 - Tuner-Style Guidance System [IN DEVELOPMENT]
 
-**Status:** Phase 1 scoping complete, ready for implementation
+**Status:** Stage 1 scoping complete, ready for implementation
 
 **Core Concept:**
 Transform passive reference viewing into active guidance using a "tuner-style" interface (like a music tuner). Visual feedback shows how close the live camera view matches a reference photo through 4 parameters with red/yellow/green zones.
 
-**Phase 1: Photo Recreation with Tuner Interface**
+**Stage 1: Photo Recreation with Tuner Interface**
 
 **Four-Parameter System:**
 1. **Distance** - Face size relative to frame
@@ -257,7 +267,7 @@ Transform passive reference viewing into active guidance using a "tuner-style" i
 - Single-face portraits ONLY (MVP)
 - Works with database photos AND user-uploaded references
 - No quality judgment - user's choice is the target
-- No ML models required for Phase 1
+- No ML models required for Stage 1
 
 **Performance Requirements:**
 - Camera preview: 30 FPS (non-negotiable)
@@ -270,9 +280,9 @@ Transform passive reference viewing into active guidance using a "tuner-style" i
 - Yellow: Getting close (approaching threshold)
 - Red: Significantly off target (>threshold deviation)
 
-**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_PHASE_1.md` for detailed implementation checklist
+**See:** `FEATURE_2.md` for complete specification and `FEATURE_2_STAGE_1.md` for detailed implementation checklist
 
-**Phase 2: General Composition Guidance [RESEARCH PHASE]**
+**Stage 2: General Composition Guidance [RESEARCH PHASE]**
 
 **Concept:**
 Same tuner UI, but target values generated from learned compositional principles instead of specific reference photo.
@@ -283,9 +293,9 @@ Same tuner UI, but target values generated from learned compositional principles
 - Hybrid: Learned model + RAG retrieval + hand-crafted fallbacks
 - Still portrait-focused, same 4 parameters, same tuner UI
 
-**Status:** Research phase, timeline TBD based on Phase 1 success
+**Status:** Research phase, timeline TBD based on Stage 1 success
 
-**See:** `FEATURE_2.md` Phase 2 section for detailed exploration
+**See:** `FEATURE_2.md` Stage 2 section for detailed exploration
 
 ## Testing Notes
 
@@ -353,11 +363,11 @@ Same tuner UI, but target values generated from learned compositional principles
 - ✅ 135 reference photos organized into subdirectories
 - ✅ Feature 1 (Reference Gallery) core development complete
 - ✅ Development Control Panel (global DEV button)
-- 🚧 Feature 2 Phase 1 (Tuner Interface) scoping complete, ready for implementation
-- ⏳ Feature 2 Phase 2 (General Composition Guidance) research phase
+- 🚧 Feature 2 Stage 1 (Tuner Interface) scoping complete, ready for implementation
+- ⏳ Feature 2 Stage 2 (General Composition Guidance) research phase
 
 ### Immediate Next Steps
-1. Review Feature 2 Phase 1 implementation checklist (FEATURE_2_PHASE_1.md)
+1. Review Feature 2 Stage 1 implementation checklist (FEATURE_2_STAGE_1.md)
 2. Begin Phase 1.1: Reference photo processing pipeline
 3. Build TunerDisplay component with 4-parameter interface
 4. Integrate face detection for live metric extraction
@@ -476,7 +486,7 @@ Same tuner UI, but target values generated from learned compositional principles
   - Phase 1: Recreate ANY reference photo (database or user-uploaded) using tuner feedback
   - Phase 2: Generate target values from learned composition principles (RAG/ML approach)
   - Single-face portraits only for MVP, no ML required for Phase 1
-- **FEATURE_2_PHASE_1.md**: Detailed 10-phase implementation checklist
+- **FEATURE_2_STAGE_1.md**: Detailed 10-phase implementation checklist
   - Reference photo processing pipeline with caching
   - TunerDisplay component with zone visualization
   - Live camera analysis and metric comparison
@@ -484,7 +494,7 @@ Same tuner UI, but target values generated from learned compositional principles
   - Complete technical specs: threshold values, performance targets, component architecture
 - **Documentation Updates**: Updated README.md and CLAUDE.md to reflect new tuner approach
   - Marked Feature 1 as complete in all documentation
-  - Updated roadmap with Feature 2 Phase 1 as next priority (3-4 weeks)
+  - Updated roadmap with Feature 2 Stage 1 as next priority (3-4 weeks)
   - Replaced old text-instruction concept with tuner interface throughout
 - **Key Decision**: Tuner interface provides better UX than text instructions - visual/continuous feedback more intuitive than verbal/discrete commands
 
@@ -493,10 +503,10 @@ Same tuner UI, but target values generated from learned compositional principles
   - Fast-forward merge - all Feature 1 work now in main
   - Includes: ReferenceGallery component, 135 reference photos, global DEV button, complete Feature 2 documentation
   - Pushed to remote main branch
-- **New Development Branch**: Created feature/tuner-live-instructions for Feature 2 Phase 1 development
+- **New Development Branch**: Created feature/tuner-live-instructions for Feature 2 Stage 1 development
   - Initial name: feature/feature-2-phase-1
   - Renamed to: feature/tuner-interface
   - Final name: feature/tuner-live-instructions (more descriptive of actual feature)
   - Branch set up with upstream tracking on remote
 - **Project Status**: Clean separation between completed Feature 1 (main) and upcoming Feature 2 development (feature branch)
-- **Ready for Development**: Feature 2 Phase 1 implementation can begin using FEATURE_2_PHASE_1.md as guide
+- **Ready for Development**: Feature 2 Stage 1 implementation can begin using FEATURE_2_STAGE_1.md as guide
